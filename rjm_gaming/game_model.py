@@ -12,8 +12,11 @@ from typing import List
 from typing import Tuple
 from typing import Dict
 from typing import Optional
+from typing import Type
+from importlib import import_module
 from game_utilities import CommsModule
 from game_utilities import CommRegistrant
+
 
 class GameInvalidError(Exception):
     pass
@@ -65,7 +68,7 @@ class Game(ABC, CommRegistrant):
     def __add_result(self, result: "GameResult") -> None:
         self.__result_history.append(result)
 
-class Player(ABC):
+class Player():
     def __init__(self, player_id: str, name: str, experience: int = None) -> None:
         self.__id = player_id
         self.__name = name
@@ -92,8 +95,37 @@ class Player(ABC):
     
     def __repr__(self) -> str:
         return self.__name + " id:" + self.__id
+    
+    @property
+    def encoding(self) -> Dict:
+        return {'_meta':{'module':self.__module__,
+                         'cls':self.__class__.__name__},
+                'name':self.__name,
+                'id':self.__id,
+                'experience':self.__experience}
+    
+    @classmethod
+    def decode(cls: Type, obj: object):
+        try:
+            if obj['_meta']['cls'] == cls.__name__:
+                return cls(obj['id'], obj['name'], experience=obj['experience'])
+        except KeyError:
+            return obj
+        else:
+            return obj
+    
+    @staticmethod
+    def build(player_data: Dict) -> Player:
+        if player_data == 'null':
+            return None
+        
+        class_module = import_module(player_data['_meta']['module'], '.')
+        class_name = player_data['_meta']['cls']
+        player_class = getattr(class_module, class_name)
+        
+        return player_class.decode(player_data)
 
-class GameResult(Dict):
+class GameResult:
     def __init__(self, *players: Player,
                          game_name: str = '',
                          result_id: int = 0,
@@ -105,8 +137,9 @@ class GameResult(Dict):
         self.__players = tuple(players)
         self.__game_over = game_over
         self.__winner = winner
+        self.__results: Dict = {}
         if not results is None:
-            self.update(results)
+            self.__results.update(results)
     
     @property 
     def result_id(self) -> int:
@@ -127,3 +160,60 @@ class GameResult(Dict):
     @property 
     def result_data(self) -> Dict:
         return self.__results.copy()
+    
+    @property
+    def encoding(self) -> Dict:
+        return {'_meta':{'module':self.__module__,
+                         'cls':self.__class__.__name__},
+                'game_name':self.__game_name,
+                'id':self.__id,
+                'players':[player.encoding for player in self.__players],
+                'game_over':self.__game_over,
+                'winner':self.__winner.encoding,
+                'results':self.__results}
+    
+    @classmethod
+    def decode(cls: Type, obj: object) -> GameResult:
+        try:
+            if obj['_meta']['cls'] == cls.__name__:
+                players = []
+                for player_data in obj['players']:
+                    players.append(Player.build(player_data))
+                
+                winner = Player.build(obj['winner'])
+                
+                return cls(*players, game_name=obj['game_name'],
+                                              result_id=obj['id'],
+                                              game_over=obj['game_over'],
+                                              winner=winner,
+                                              results=obj['results'])
+        except (KeyError, ImportError):
+            return obj
+        else:
+            return obj
+    
+    def __repr__(self) -> str:
+        return str(self.encoding)
+
+
+
+if __name__ == '__main__':
+    exit()
+    # import json
+    # p1 = Player('1', 'Pleyer One')
+    # gr = GameResult(*[p1],
+    #                   game_name='War',
+    #                   winner=p1,
+    #                   results={'blah':'blah'})
+    # print(gr)
+    # print()
+    # print('JSON')
+    # json_data = json.dumps(gr, object_hook=GameResult.encode)
+    # print(json_data)
+    # data = json.loads(json_data, object_hook=GameResult.decode)
+    # print(type(data),data)
+    # print()
+    # json_data = json.dumps(p1, cls=PlayerEncoder)
+    # print(json_data)
+    # p1 = json.loads(json_data, object_hook=Player.decode)
+    # print(type(p1), p1)
