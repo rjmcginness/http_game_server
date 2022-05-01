@@ -8,6 +8,7 @@ Created on Tue Apr 19 09:28:23 2022
 from enum import Enum
 from typing import List
 from typing import Tuple
+from typing import Dict
 from abc import abstractmethod
 from random import sample
 from game_model import Game
@@ -83,8 +84,12 @@ class Card:
     def __lt__(self, card2) -> bool:
         return self.__rank_value < card2.rank_value
     
-    # def __str__(self) -> str:
-    #     return self.__repr__()
+    @property
+    def encoding(self) -> Dict:
+        return {'_meta':'_Card',
+                'suit':self.__suit,
+                'rank':self.__rank,
+                'value':self.__value}
 
 class Deck(List[Card]):
     
@@ -120,8 +125,13 @@ class StandardDeck(Deck):
         self += [Card(s.name, r.name, r.value) for s in Suits for r in AceHighRanks]
         
 class CardPlayer(Player):
-    def __init__(self, player_id: str, name: str) -> None:
-        super().__init__(player_id, name)
+    ''' Subclass of Player
+        Additional Attributes: hand, score, isdealer
+    '''
+    def __init__(self, player_id: str, 
+                       name: str, 
+                       experience: Optional[int] = None) -> None:
+        super().__init__(player_id, name, experience)
         self.__hand: List[Card] = []
         self.__score: int = 0
         self.__isdealer = False
@@ -157,6 +167,14 @@ class CardPlayer(Player):
     @property 
     def card_count(self) -> int:
         return len(self.__hand)
+    
+    @property
+    def encoding(self) -> Dict:
+        enc = super.encoding
+        enc['_meta'] = '_CardPlayer'
+        return enc.update({'hand':self.__hand,
+                           'score':self.__score,
+                           'dealer':self.__isdealer})
         
 class CardGame(Game):
     def __init__(self, name: str,
