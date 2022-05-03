@@ -46,17 +46,19 @@ if __name__ == '__main__':
     a_comms.register_output(game_socket)
     
     game_names = []
-    game_row = '<tr><td>.name</td><td><button type="button" name=".name">Play</button></td></tr>'
+    game_row = '<tr><td>.name</td><td><button type="button" value=".name">Play</button></td></tr>'
+    game_rows = ''
     
     with open('game_init.i', 'rt') as init_file:
         for game_init in init_file.readline():
             game_names.append(game_init.split()[0])
+            game_rows += game_row.replace('.name', game_names[-1])
     
     output_str = "HTTP/1.1 200 OK\nContent-Type: text/html\n\r\n"
     with open('../static/menu.html', 'rt') as templ:
         output_str += templ.read()
     
-    output = output.replace('GAMES', game_rows)
+    output_str = output_str.replace('GAMES', game_rows)
     
     a_comms.write(None)
     a_comms.unregister(game_socket)
