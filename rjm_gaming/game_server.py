@@ -50,15 +50,17 @@ if __name__ == '__main__':
     game_rows = ''
     
     with open('game_init.i', 'rt') as init_file:
-        for game_init in init_file.readline():
+        for game_init in init_file:
             game_names.append(game_init.split()[0])
-            game_rows += game_row.replace('.name', game_names[-1])
+            game_rows += game_row.replace('.name', game_names[-1].strip())
     
-    output_str = "HTTP/1.1 200 OK\nContent-Type: text/html\n\r\n"
+    output_str = "HTTP/1.1 200 OK\nContent-Type: text/html; charset=utf-8\n\r\n"
     with open('../static/menu.html', 'rt') as templ:
-        output_str += templ.read()
+        for line in templ:
+            output_str += line.strip()
     
     output_str = output_str.replace('GAMES', game_rows)
     
-    a_comms.write(None)
-    a_comms.unregister(game_socket)
+    a_comms.write(output_str)
+    input('Press enter to stop server')
+    a_comms.unregister(game_socket)#########closes socket (may not want to close it, as it may be transferred to another game)

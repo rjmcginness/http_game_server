@@ -46,9 +46,8 @@ class AsyncCommsModule(CommsModule):
         self.__max_connections = max_clients
     
     def write(self, data: Any) -> Any:
-        message = "HTTP/1.1 200 OK\nContent-Type: text/html\n\r\n"
-        message += "<!DOCTYPE html><head></head><html><body>Hello, World!</body></html>"
-        self._CommsModule__io[0].write(message)
+        #########complete this to go through all io point
+        self._CommsModule__io[0].write(data)
     
     def read_input(self) -> Any:
         pass
