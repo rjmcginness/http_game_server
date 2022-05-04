@@ -20,7 +20,7 @@ class GameSocket(CommRegistrant):
         self.__address = address
     
     def read(self) -> Any:
-        return 
+        return self.__socket.recv(2048)
     
     def write(self, data: Any) -> None:
         total_sent = 0
@@ -28,7 +28,6 @@ class GameSocket(CommRegistrant):
             sent = self.__socket.send(bytes(str.encode(data)))
             if sent == 0:
                 raise GameCommsError(f"Incomplete data sent to client @{self.__address}")
-            print(bytes(data.encode()))
             total_sent += sent
         #self.__socket
     
@@ -50,7 +49,7 @@ class AsyncCommsModule(CommsModule):
         self._CommsModule__io[0].write(data)
     
     def read_input(self) -> Any:
-        pass
+        return self._CommsModule__io[0].read().decode()
     
     def display(self, data: Any) -> Any:
         pass
@@ -62,8 +61,12 @@ class AsyncCommsModule(CommsModule):
     
     def unregister_all(self) -> None:
         for game_socket in self._CommsModule__io:
-            game_socket.close()
+            #game_socket.close()
             self._CommsModule__io.remove(game_socket)
+    
+    @property
+    def connections(self) -> Tuple:
+        return tuple(self._CommsModule__io)
         
         
 if __name__ == '__main__':

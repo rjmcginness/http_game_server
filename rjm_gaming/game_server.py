@@ -46,7 +46,9 @@ if __name__ == '__main__':
     a_comms.register_output(game_socket)
     
     game_names = []
-    game_row = '<tr><td>.name</td><td><button type="button" value=".name">Play</button></td></tr>'
+    # game_row = '<tr><td>.name</td><td><form action=".name" method="get"><button type="button" value=".name" action="War" method="get">Play</button></form></td></tr>'
+    # game_row = '<tr><td>.name</td><td><form action=".name" method="get"><input type="submit" value="Play" method="get"/></form></td></tr>'
+    game_row = '<tr><td><a href="/.name">Play .name</a></td></tr>'
     game_rows = ''
     
     with open('game_init.i', 'rt') as init_file:
@@ -61,6 +63,34 @@ if __name__ == '__main__':
     
     output_str = output_str.replace('GAMES', game_rows)
     
+    content = ''
+    with open('../static/css/menu.css', 'rt') as css_file:
+        for line in css_file:
+            content += line.strip()
+    
+    output_str = output_str.replace('</head>', f'<style>{content}</style></head>')
+    
     a_comms.write(output_str)
+    
+    while (request := a_comms.read_input()):
+        print('REQUEST', request)
+
+    print('REQUEST', request)
+    #output_str = '200 OK\nContent-Type: text/css; charset=utf-8\n'
+    
+    # content = ''
+    # with open('../static/css/menu.css', 'rt') as css_file:
+    #     for line in css_file:
+    #         content += line.strip()
+    
+    # output_str += f'Content-Length: {len(content)}\n'
+    
+    
+    # a_comms.write(output_str + content + '\r\n')
+    # print(output_str+ content + '\r\n')
+    #a_comms.write(output_str + content + '\r\n')
+    
     input('Press enter to stop server')
     a_comms.unregister(game_socket)#########closes socket (may not want to close it, as it may be transferred to another game)
+    for sock in a_comms.connections:
+        sock.close()
