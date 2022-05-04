@@ -1,0 +1,14 @@
+h1{
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    color: rgb(82, 35, 35);
+}
+
+td{
+    color: darkgreen;
+}
+
+button{
+    border: 1px solid;
+    width: 50px;
+    color: darkgreen;
+}
