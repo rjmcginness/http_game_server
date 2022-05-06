@@ -16,9 +16,10 @@ from game_utilities import TerminalCommsModule
 from game_utilities import DataAccess
 from game_utilities import FileDataAccess
 
-
-class Engine:
-    def __init__(self, comms: CommsModule, data_access: DataAccess) -> None:
+######UNLINK GAME FROM COMMS???????
+#######REWRITE THIS SO THAT IS FUNCTIONS TO GENERATE GAMES AND MATCH PLAYERS
+class GameEngine:
+    def __init__(self) -> None:
         self.__comms = comms
         self.__data_access = data_access
         self.__games = self.__data_access.games
@@ -75,6 +76,6 @@ if __name__ == '__main__':
     fa.initialize()
     print(fa.games)
     
-    engine = Engine(comms, fa)
+    engine = GameEngine(comms, fa)
     engine.run_game('War')
     
