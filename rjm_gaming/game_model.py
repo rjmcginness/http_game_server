@@ -15,13 +15,12 @@ from typing import Optional
 from typing import Type
 from importlib import import_module
 from game_utilities import CommsModule
-from game_utilities import CommRegistrant
 
 
 class GameInvalidError(Exception):
     pass
 
-class Game(ABC, CommRegistrant):
+class Game(ABC):
     def __init__(self, name: str, comms: CommsModule, players: List[Player] = []) -> None:
         self.__name = name
         self.__comms = comms

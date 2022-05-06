@@ -14,6 +14,7 @@ from game_authentication import Authenticator
 from config import Config
 from game_engine import GameEngine
 from game_utilities import ClassLoader
+# from functools import wraps
 
 
 class ServerClientService(Thread):
@@ -23,34 +24,53 @@ class ServerClientService(Thread):
         self.__config = config
         self.__client = None
         
-        def run(self):
-            authenticator = Authenticator(self.__comms, self.__config)
-            if not authenticator.success:
-                return
-        
-            self.__client = authenticator.client
-            print(f'{self.client.name} ({self.client.client_id}) has entered')
-        
-        @property
-        def client(self) -> ServerClient:
-            return self.__client
-        
-        @property
-        def dispatch(self) -> None:
-            self.__comms.close()
-        
-        @property
-        def config(self) -> Config:
-            return self.__config
+    def run(self):
+        authenticator = Authenticator(self.__comms, self.__config)
+        if not authenticator.success:
+            return
+    
+        self.__client = authenticator.client
+        print(f'{self.client.name} ({self.client.client_id}) has entered')
+    
+    @property
+    def client(self) -> ServerClient:
+        return self.__client
+    
+    @property
+    def dispatch(self) -> None:
+        self.__comms.close()
+    
+    @property
+    def config(self) -> Config:
+        return self.__config
+    
+    @property
+    def comms(self) -> HTTPCommsModule:
+        return self.__comms
+    
+    @abstractmethod
+    def get(self, **kwargs) -> None:
+        ...
+    
+    # def get(self, *paths):######decorator????!!!????!!!
+    #     def check_get(get_function):
+    #         assert not paths is None and len(paths) > 0
+            
+    #         @wraps(get_function)
+    #         def wrapper(*args, **kwargs):
+    #             print('Hi')
+    #         return wrapper
             
 class GameClientService(ServerClientService):
     def __init__(self, config: Config, comms: HTTPCommsModule, engine: GameEngine):
         super().__init__(config, comms)
         self.__engine = engine
         self.__player
+        self.start()
     
     def run(self):
-        super().run()
+        self.get(self.__comms.read())#initial get sent for page
+        super().run()#authenticates client
         
         if not self.client:
             return
@@ -65,7 +85,36 @@ class GameClientService(ServerClientService):
             #########FINISH THIS
             print("IN CLIENT SERVICE LOOP")
             break
+        
         self.dispatch()
+    
+    def get(self, **kwargs) -> None:
+    ######I DO NOT LIKE THIS IMPLEMENTATION I WANT IT TO BE SMARTER
+    ######get a request, parse for GET, pass to decorated function tha handles
+    ######the path/request.  SEE BELOW COMMENTED CODE AS A START
+        if 'path' not in kwargs or\
+                    kwargs['path'] == '/' or\
+                    kwargs['path'] == '':
+            menu_class = ClassLoader.load_class(self.config.MENU['cls'],
+                                                self.config.MENU['module'],
+                                                self.config.MENU['package'])
+            
+            menu = menu_class(self.__comms)
+    
+    
+    
+    # @ServerClientService.get('/menu')
+    # def menu(self) -> None:
+    #     menu_class = ClassLoader.load_class(self.config.MENU['cls'],
+    #                                         self.config.MENU['module'],
+    #                                         self.config.MENU['package'])
+        
+    #     menu = menu_class(self.__comms)
+        
+    #     while not menu.exit_requested:
+    #         #########FINISH THIS
+    #         print("IN CLIENT SERVICE LOOP")
+    #         break
     
 
 class GameServer:
@@ -100,56 +149,17 @@ class GameServer:
         return
 
 if __name__ == '__main__':
-    server = GameServer('localhost', port=5550, max_connect_requests=5)
-    game_socket = next(server.watch())
-    
-    a_comms = HTTPCommsModule()
-    a_comms.register_output(game_socket)
-    
-    game_names = []
-    # game_row = '<tr><td>.name</td><td><form action=".name" method="get"><button type="button" value=".name" action="War" method="get">Play</button></form></td></tr>'
-    # game_row = '<tr><td>.name</td><td><form action=".name" method="get"><input type="submit" value="Play" method="get"/></form></td></tr>'
-    game_row = '<tr><td><a href="/.name">Play .name</a></td></tr>'
-    game_rows = ''
-    
-    with open('game_init.i', 'rt') as init_file:
-        for game_init in init_file:
-            game_names.append(game_init.split()[0])
-            game_rows += game_row.replace('.name', game_names[-1].strip())
-    
-    output_str = "HTTP/1.1 200 OK\nContent-Type: text/html; charset=utf-8\n\r\n"
-    with open('../static/menu.html', 'rt') as templ:
-        for line in templ:
-            output_str += line.strip()
-    
-    output_str = output_str.replace('GAMES', game_rows)
-    
-    content = ''
-    with open('../static/css/menu.css', 'rt') as css_file:
-        for line in css_file:
-            content += line.strip()
-    
-    output_str = output_str.replace('</head>', f'<style>{content}</style></head>')
-    
-    a_comms.write(output_str)
-    
-    while (request := a_comms.read_input()):
-        print('REQUEST', request)
-
-    print('REQUEST', request)
-    #output_str = '200 OK\nContent-Type: text/css; charset=utf-8\n'
-    
-    # content = ''
-    # with open('../static/css/menu.css', 'rt') as css_file:
-    #     for line in css_file:
-    #         content += line.strip()
-    
-    # output_str += f'Content-Length: {len(content)}\n'
-    
-    
-    # a_comms.write(output_str + content + '\r\n')
-    # print(output_str+ content + '\r\n')
-    #a_comms.write(output_str + content + '\r\n')
-    
-    input('Press enter to stop server')
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+        server.bind(('localhost', 6500))
+        server.listen(1)
+        connection, address = server.accept()
+        
+        comms = HTTPCommsModule(connection, time_out=None)
+        client = GameClientService(Config(), comms, None)
+        
+        # auth = Authenticator(comms, Config())
+        # if auth.success:
+        #     print(auth.client)
+        
+        comms.close()
    

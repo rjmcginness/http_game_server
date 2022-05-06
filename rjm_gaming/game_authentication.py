@@ -7,9 +7,11 @@ Created on Thu May  5 21:50:29 2022
 
 import time
 
-from game_utilities import CommsModule
+from game_network import HTTPCommsModule
+from game_network import HTTPHeader
 from game_utilities import FileDataAccess
 from config import Config
+
 
 
 class ServerClient:
@@ -29,21 +31,30 @@ class ServerClient:
     @property
     def isauthenticated(self) -> bool:
         return self.__authenticated
+    
+    def __repr__(self) -> str:
+        return f'name={self.__name} id={self.__id} authenticated={self.__authenticated}'
 
 class Authenticator():
-    def __init__(self, comms: CommsModule, config: Config) -> None:
+    def __init__(self, comms: HTTPCommsModule, config: Config) -> None:
         super().__init__()
-        self.__comms: CommsModule = comms
+        self.__comms: HTTPCommsModule = comms
         self.__config: Config = config
         self.__client: ServerClient = None
         self.__authenticate()
     
     def __authenticate(self) -> None:
+        #print(self.__comms.read())#get initital GET for page MAYBE THIS SHOULD NOT BE HERE
+        header = HTTPHeader()
+        header.content_type = 'text/html; charset=utf-8'
+        self.__comms.render_file(self.__config.LOGIN_FORM, header)
+        print("RENDERED")
         
-        file_access = FileDataAccess(self.__config.LOGIN_FORM)
-        print(file_access.data)
-        self.__comms.write(file_access.data)
-        request = self.__comms.read_input()
+        request = ''
+        while '/auth?' not in request:
+            #time.sleep(1)
+            print(request.split('\n'))
+            request = self.__comms.read()
         print(request)
             # print(connection.recv(1024))
             # print(auth_html())
@@ -61,3 +72,19 @@ class Authenticator():
     @property
     def success(self) -> bool:
         return self.__client.isauthenticated
+    
+if __name__ == '__main__':
+    from game_network import HTTPCommsModule
+    import socket
+    
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+        server.bind(('localhost', 6500))
+        server.listen(1)
+        connection, address = server.accept()
+        
+        comms = HTTPCommsModule(connection, time_out=None)
+        auth = Authenticator(comms, Config())
+        if auth.success:
+            print(auth.client)
+        
+        comms.close()
