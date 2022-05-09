@@ -96,11 +96,13 @@ class HTTPHeader:
                 self.accept_language + self.connection + self.content_length +\
                 self.content_type + '\r\n')
 
-class HTTPCommsModule(CommsModule):
+
+
+class HTTPCommsModule:
     def __init__(self, connection: socket.socket,
                  time_out:int = None,
                  max_clients: int = 1) -> None:
-        super().__init__(connection, connection)
+        # super().__init__(connection, connection)
         self.__connection = connection
         self.__connection.settimeout(time_out)
         self.__max_connections = max_clients
@@ -122,7 +124,8 @@ class HTTPCommsModule(CommsModule):
     
     def read(self) -> Any:
         try:
-            return self.__connection.recv(1024).decode()###### may want to parse Content-Type to decide how to decode (ex. json)
+            print(self.__connection)
+            return self.__connection.recv(2048).decode() # DOES SIZE MATTER???
         except (KeyboardInterrupt, SystemExit):
             raise
         except Exception as e:
@@ -158,25 +161,82 @@ class HTTPCommsModule(CommsModule):
         except Exception as e:
             raise GameCommsError from e
 
-class ServerClient:
-    def __init__(self, name: str, client_id: str, authenticated: bool = False) -> None:
-        self.__name = name
-        self.__id = client_id
-        self.__authenticated = authenticated
+class HTTPSession:
+    def __init__(self, client_id: str) -> None:
+        self.__client_id = client_id
+    
+    def form_insert(self, form: str) -> str:
+        id_tag = '<input hidden type="password" name="identifier" '
+        id_tag += f'value="{self.__client_id}"/>\r\n</form>'
         
-    @property
-    def name(self) -> str:
-        return self.__name
+        return form.replace('</form>', id_tag)
+    
+    def form_file_insert(self, file_name: str) -> str:
+        form = ''
+        with open(file_name, 'rt') as form_file:
+            form = form_file.read()
+        
+        return self.form_insert(form)
     
     @property
     def client_id(self) -> str:
-        return self.__id
+        return self.__client_id
+
+class HTTPRequest:
+    def __init__(self, connection: socket.socket) -> None:
+        self.__name = connection.getpeername()[1] # client port number
+        self.__connection = HTTPCommsModule(connection)
+        self.__request = self.__connection.read()
+        self.__parse_session()
+        print(self.__request)
+    
+    def __parse_session(self) -> None:
+        ''' Parses the session identifier in the request.
+            Parses for the tag <input hidden type="password"
+            name="identifier" value="IDENTIFIER"/>, where 
+            IDENTIFIER is the session ID
+            
+            Stored a new HTTPSession object with client identifier,
+            if found, or None.
+        '''
+        try:
+            found_at_idx = self.__request.index('identifier=')
+            start_idx = found_at_idx+len('identifier=')
+            end_idx = self.__request[start_idx:].index('"')
+            self.__session = HTTPSession(self.__request[start_idx:end_idx])
+        except (ValueError, IndexError):
+            self.__session = None
     
     @property
-    def isauthenticated(self) -> bool:
-        return self.__authenticated
+    def name(self) -> str:
+        return str(self.__name)
+    
+    @property
+    def connection(self) -> HTTPCommsModule:
+        return self.__connection
+    
+    @property
+    def session(self) -> Optional[HTTPSession]:
+        
+        return self.__session
+    
+    @session.setter
+    def session(self, http_session: HTTPSession) -> None:
+        self.__session = http_session
+    
+    @property
+    def request(self) -> str:
+        return self.__request
+    
+    def __repr__(self) -> str:
+        return self.__request
+    
+
+
 
 if __name__ == '__main__':
+    from sys import exit
+    exit()
     print(HTTPStatusCode.OK.value)
     
     from config import Config
