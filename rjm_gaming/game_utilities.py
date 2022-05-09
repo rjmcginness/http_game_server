@@ -59,6 +59,7 @@ class FileDataAccess(DataAccess):
         super().__init__(init_path)
         self.__raw = raw
         self.__data = None
+        self.initialize()
     
     def initialize(self) -> None:
         '''Reads the entire file and stores in __data attribute'''
@@ -77,4 +78,8 @@ class ClassLoader:
                    package_name: str = '.') -> Type:
         module_type = import_module(module_name, package_name)
         return getattr(module_type, class_name)
-        
+
+    
+if __name__ == '__main__':
+    file_access = FileDataAccess('../static/mainmenu.html')
+    print(file_access.data)

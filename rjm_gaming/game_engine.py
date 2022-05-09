@@ -12,17 +12,16 @@ import time
 
 from game_model import GameInvalidError
 from game_utilities import CommsModule
-from game_utilities import TerminalCommsModule
 from game_utilities import DataAccess
 from game_utilities import FileDataAccess
 
 ######UNLINK GAME FROM COMMS???????
 #######REWRITE THIS SO THAT IS FUNCTIONS TO GENERATE GAMES AND MATCH PLAYERS
 class GameEngine:
-    def __init__(self) -> None:
+    def __init__(self, comms:CommsModule, data_access: DataAccess) -> None:
         self.__comms = comms
         self.__data_access = data_access
-        self.__games = self.__data_access.games
+        # self.__games = self.__data_access.games
         self.__cached_games = {}
     
     def load_game(self, name: str) -> Dict:
