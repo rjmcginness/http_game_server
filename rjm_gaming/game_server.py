@@ -33,66 +33,44 @@ class ServerClientService(Thread):
         self.__requests = []
         
     def run(self):
-        
+        ''' If client_id is None, generate and id, embed in html, and
+            send the authentication form to user
+        '''
         while True:
             if not self.__requests:
                 continue
             #######POTENTIAL FOR THREAD LOCK OR RACING???
+            print('CLIENT ID:', self.__client_id)
             request = self.__requests.pop(0)
-            if self.__client_id is None:   #nauthentication form not sent yet
+            if self.__client_id is None:   # authentication form not sent yet
+                self.__client_id = request.session.client_id
                 print('Sending authentication...')
                 self.__send_authentication((request))
                 continue
             
-            
+            print("REQUEST:\n", request)
             self.__process_request(request)
     
     def __send_authentication(self, request: HTTPRequest) -> None:
+        ''' Generates and sends the authentication page response to 
+            initial GET for accessing server @ '/'
+        '''
         header = HTTPHeader()
-        header.content_type = 'text/html; charset=utf-8'
-        client_id = request.name + str(time.time())
-        session = HTTPSession(client_id)
+        header.content_type = 'text/html; charset=utf-8' # sending html
+        #header.host = f'localhost:6500%{request.session.client_id}'
+        
+        client_id = request.session.client_id
+        # client_id = request.name + str(time.time()) # create ID
+        session = HTTPSession(client_id) # new session with client_id
         login_form = session.form_file_insert(self.__config.LOGIN_FORM)
-        print(login_form)
-        request.connection.render(login_form)
-            
-    @property
-    def client(self) -> ServerClient:
-        return self.__client
+        header.content_length = str(len(login_form)) # include dynamic content length of html 
+        request.connection.render(login_form, header=header)
     
-    @property
-    def config(self) -> Config:
-        return self.__config
-    
-    @abstractmethod
-    def get(self, **kwargs) -> None:
-        ...
-    
-    @abstractmethod
-    def put(self, **kwargs) -> None:
-        ...
-
-    @abstractmethod
-    def post(self, **kwargs) -> None:
-        ...
-    
-    @abstractmethod
-    def delete(self, **kwargs) -> None:
-        ...
-    
-    @abstractmethod
-    def error(self, **kwargs) -> None:
-        ...
-    
-    def push(self, request: Any) -> None:
-        if request is None:
-            return
-        
-        self.__requests.append(request)
-        
-        
     def __process_request(self, request: HTTPRequest) -> None:
-        request_lines = request.request.split('\n')######WILL THIS WORRK WITH LINUX
+        request_lines = request.request.split('\n')######WILL THIS WORRK WITH LINUX????
+        
+        print("SESSION ID:", request.session.client_id, request.session.client_id == self.__client_id)
+        
         if 'HTTP/1.1' in request_lines[0]:
             crud_line = request_lines[0].lower()
             for idx in range(len(request_lines)):
@@ -123,7 +101,48 @@ class ServerClientService(Thread):
             else:
                 self.error(request=request)
         
-        request.connection.close()
+        ###############################################################
+        ######IS THIS CAUSING THE PROBLEM???:
+        # request.connection.close()
+    
+    def push(self, request: Any) -> None:
+        if request is None:
+            return
+        
+        self.__requests.append(request)
+    
+    @property
+    def client(self) -> ServerClient:
+        return self.__client
+    
+    @property
+    def config(self) -> Config:
+        return self.__config
+    
+    @abstractmethod
+    def get(self, **kwargs) -> None:
+        ...
+    
+    @abstractmethod
+    def put(self, **kwargs) -> None:
+        ...
+
+    @abstractmethod
+    def post(self, **kwargs) -> None:
+        ...
+    
+    @abstractmethod
+    def delete(self, **kwargs) -> None:
+        ...
+    
+    @abstractmethod
+    def error(self, **kwargs) -> None:
+        ...
+    
+    
+        
+        
+    
     
     # def get(self, *paths):######decorator????!!!????!!!
     #     def check_get(get_function):
@@ -160,14 +179,17 @@ class GameClientService(ServerClientService):
         request = kwargs['request']
         
         if self.client is None:
-            authenticator = Authenticator(self.__config, request)
-            time.sleep(2)######hhhmm why?????
+            # run authenticator to authenticate
+            print('START AUTHENTICATION...')
+            authenticator = Authenticator(self.config, **kwargs)
+            # time.sleep(2)######hhhmm why?????
             if not authenticator.success:
+                print('AUTHENTICATION FAILED')
                 self.__client_id = None # Have to resend form
                 return
 
-            self.__client = authenticator.client
-            print(f'{self.client.name} ({self.client.client_id}) has entered')
+            self._ServerClientService__client = authenticator.client
+            print(f'User Authenticated:\n{self.client.name} ({self.client.client_id}) has entered')
         
     
     def put(self, **kwargs) -> None:
@@ -202,7 +224,8 @@ class GameServer:######Consider implementing as ContextManager
         self.__server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.__clients = {}
         self.__server.bind((address, port))
-        self.__server.listen(1)
+        self.__server.listen(5)
+        print(f'Starting server on {port}...')
         
     def start(self) -> None:
         with self.__server as server:
@@ -216,7 +239,7 @@ class GameServer:######Consider implementing as ContextManager
             except (ConnectionAbortedError,
                     KeyboardInterrupt,
                     SystemExit) as e:
-                stderr.write("Server closing...\n" + str(e) + str(time.time()))
+                stderr.write("Server closing...\n" + str(e) + str(time.ctime()))
                 self.shutdown()
                 raise
             
@@ -232,12 +255,12 @@ class GameServer:######Consider implementing as ContextManager
         return self.__clients.copy()
     
     def create_client(self, request: HTTPRequest) -> None:
-        client_id = request.name + str(time.time())
-        print('CLIENT ID:', client_id)
-        
+        ''' Create a new Game service and push this request
+            to it.
+        '''
         ######CREATE SERVICE: No Engine for testing
-        service = GameClientService(Config(), None)
-        self.__clients[client_id] = service
+        service = GameClientService(Config(), None) # could gave session as constructor argument 
+        self.__clients[request.session.client_id] = service
         print('New Game Client Service created')
         service.push(request)
         
@@ -305,15 +328,18 @@ class RequestRouter(Thread):
     
     def run(self):
         request = HTTPRequest(self.__connection)
+        
+        if not request.session: # no session, so make a new one
+            request.session = HTTPSession(request.name + str(time.time()))
         self.route_request(request)
     
     def route_request(self, request: HTTPRequest) -> None:
         try:
-            client = request.session.client_id
-            self.__server.clients[client].push(request)
-        except (KeyError, AttributeError):
+            client_id = request.session.client_id
+            self.__server.clients[client_id].push(request)
+        except KeyError:
             # KeyError: client not found
-            # AttribiteError: session is None
+            # AttribiteError: session should never be None
             self.__server.create_client(request)######MAY HAVE TO LOCK ON THIS
     
 
@@ -349,10 +375,8 @@ if __name__ == '__main__':
     server = None
     try:
         server = GameServer()
-        print('Starting server...')
         print("ctrl+c to exit")
         server.start()
-        server.join()
     except (ConnectionAbortedError, KeyboardInterrupt) as e:
         print(e)
         server.shutdown()

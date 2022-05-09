@@ -56,6 +56,8 @@ class Authenticator:
     
     def __authenticate(self, **kwargs) -> None:
      
+        print('AUTHENTICATE KWARGS:', kwargs)
+        print('KWARGS SESSION', kwargs['request'].session)
         #################################################################
         ######FAKED FOR NOW
         ######HIT DB INSTEAD
@@ -68,7 +70,7 @@ class Authenticator:
             password = password.split('=')[1]
             
             ##############################################
-            ######Authenicate username and passwork in DB
+            ######Authenicate username and password in DB
             
             self.__client = ServerClient(username,
                                          kwargs['request'].session,

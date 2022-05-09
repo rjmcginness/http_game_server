@@ -34,6 +34,7 @@ class HTTPHeader:
         self.__connection: str = ''
         self.__content_len: str = ''
         self.__content_type: str = ''
+        self.__host: str = ''
     
     @property
     def accept(self) -> str:
@@ -91,10 +92,18 @@ class HTTPHeader:
     def content_type(self, data: str) -> None:
         self.__content_type = f'Content-Type: {data}\n'
     
+    @property
+    def host(self) -> str:
+        return self.__host
+    
+    @host.setter
+    def host(self, data: str) -> None:
+        self.__host = f'Host: {data}\n'
+    
     def __repr__(self) -> str:
-        return (self.accept + self.accept_charset + self.accept_encoding +\
-                self.accept_language + self.connection + self.content_length +\
-                self.content_type + '\r\n')
+        return (self.host + self.accept + self.accept_charset  +\
+                self.accept_encoding + self.accept_language +\
+                self.connection + self.content_length + self.content_type + '\r\n')
 
 
 
@@ -140,8 +149,7 @@ class HTTPCommsModule:
         except KeyError:
             response += status_codes[500]
         
-        response += str(header) + str(data) + '\n'#####will this cause an error, if bytes (check for b' in output)
-          
+        response += str(header) + str(data)#####will this cause an error, if bytes (check for b' in output)
         self.write(response)
     
     def render_file(self, file_name: str,
@@ -166,20 +174,28 @@ class HTTPSession:
         self.__client_id = client_id
     
     def form_insert(self, form: str) -> str:
-        id_tag = '<input hidden type="password" name="identifier" '
-        id_tag += f'value="{self.__client_id}"/>\r\n</form>'
+        id_tag = '<input hidden type="hidden" name="identifier" '
+        id_tag += f'value="{self.__client_id}"/>\n'
         
-        return form.replace('</form>', id_tag)
+        # return form.replace('</form>', id_tag)
+        return form.replace('<input type="submit"',
+                            id_tag + '<input type="submit"')
     
     def form_file_insert(self, file_name: str) -> str:
         form = ''
         with open(file_name, 'rt') as form_file:
             form = form_file.read()
         
+        form.strip()
+        form += '\r\n'
+        
         return self.form_insert(form)
     
     @property
     def client_id(self) -> str:
+        return self.__client_id
+    
+    def __repr__(self) -> str:
         return self.__client_id
 
 class HTTPRequest:
@@ -188,22 +204,25 @@ class HTTPRequest:
         self.__connection = HTTPCommsModule(connection)
         self.__request = self.__connection.read()
         self.__parse_session()
-        print(self.__request)
     
     def __parse_session(self) -> None:
         ''' Parses the session identifier in the request.
-            Parses for the tag <input hidden type="password"
+            Parses for the query identifier=IDENTIFIER~
+            from form tag <input hidden type="hidden"
             name="identifier" value="IDENTIFIER"/>, where 
             IDENTIFIER is the session ID
             
             Stored a new HTTPSession object with client identifier,
             if found, or None.
         '''
+        print(f"REQUEST:\n{self.__request}")
         try:
             found_at_idx = self.__request.index('identifier=')
             start_idx = found_at_idx+len('identifier=')
-            end_idx = self.__request[start_idx:].index('"')
-            self.__session = HTTPSession(self.__request[start_idx:end_idx])
+            end_idx = self.__request[start_idx:].index(' ')
+            identifier = self.__request[start_idx:start_idx + end_idx]
+            print(f'IDENTIFIER-----: {identifier}')
+            self.__session = HTTPSession(identifier)
         except (ValueError, IndexError):
             self.__session = None
     
@@ -268,4 +287,19 @@ if __name__ == '__main__':
     
     import sys
     sys.exit()
-    
+
+'''
+GET /auth?username=Robert&password=pass&identifier=645731652113574.3543987 HTTP/1.1
+Host: localhost:6500
+User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:100.0) Gecko/20100101 Firefox/100.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Connection: keep-alive
+Referer: http://localhost:6500/
+Upgrade-Insecure-Requests: 1
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: same-origin
+Sec-Fetch-User: ?1
+Accept-Encoding: gzip, deflate
+'''
