@@ -177,9 +177,7 @@ class HTTPSession:
         id_tag = '<input hidden type="hidden" name="identifier" '
         id_tag += f'value="{self.__client_id}"/>\n'
         
-        # return form.replace('</form>', id_tag)
-        return form.replace('<input type="submit"',
-                            id_tag + '<input type="submit"')
+        return form.replace('</form>', id_tag + '</form>')
     
     def form_file_insert(self, file_name: str) -> str:
         form = ''

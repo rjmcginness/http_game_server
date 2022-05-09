@@ -63,17 +63,21 @@ class Authenticator:
         ######HIT DB INSTEAD
         #################################################################
         try:
-            header = kwargs['header']
+            header = kwargs['request_type']
+            print("HEADER----", header)
             query_idx = header.index('?') + 1 # starts one beyond ?
             username, password = tuple(header[query_idx:].split('&'))
+            print(username, password)
             username = username.split('=')[1]
             password = password.split('=')[1]
+            
+            
             
             ##############################################
             ######Authenicate username and password in DB
             
             self.__client = ServerClient(username,
-                                         kwargs['request'].session,
+                                         self.__request.session,
                                          authenticated=True)
         except ValueError:
             self.__client = None
