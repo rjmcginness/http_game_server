@@ -8,14 +8,14 @@ Created on Tue May  3 10:08:07 2022
 import socket
 from typing import Any
 from typing import Optional
+from typing import List
 from enum import Enum
 
-from game_utilities import CommsModule
 from game_utilities import GameCommsError
 from game_utilities import FileDataAccess
 
 class HTTPStatusCode(Enum):
-    ######should complete this with all of them
+    ######should complete this with all of them or use http package
     VERSION = 'HTTP/1.1'
     OK = VERSION + ' 200 OK\n'
     NOT_FOUND = VERSION + ' 404 Not Found\n'
@@ -34,6 +34,9 @@ class HTTPHeader:
         self.__connection: str = ''
         self.__content_len: str = ''
         self.__content_type: str = ''
+        self.__cookie: str = ''
+        self.__host: str = ''
+        self.__set_cookie: str = ''
     
     @property
     def accept(self) -> str:
@@ -91,18 +94,41 @@ class HTTPHeader:
     def content_type(self, data: str) -> None:
         self.__content_type = f'Content-Type: {data}\n'
     
+    @property
+    def host(self) -> str:
+        return self.__host
+    
+    @host.setter
+    def host(self, data: str) -> None:
+        self.__host = f'Host: {data}\n'
+    
+    @property
+    def cookie(self) -> str:
+        return self.__cookie
+    
+    @cookie.setter
+    def cookie(self, data: str) -> None:
+        self.__cookie = f'Cookie: {data}\n'
+    
+    @property
+    def set_cookie(self) -> str:
+        return self.__set_cookie
+    
+    @set_cookie.setter
+    def set_cookie(self, data: str) -> None:
+        self.__set_cookie = f'Set-Cookie: {data}\n'
+    
     def __repr__(self) -> str:
-        return (self.accept + self.accept_charset + self.accept_encoding +\
-                self.accept_language + self.connection + self.content_length +\
-                self.content_type + '\r\n')
-
+        return (self.host + self.accept + self.accept_charset  +\
+                self.accept_encoding + self.accept_language +\
+                self.connection + self.set_cookie + self.content_type + \
+                self.content_length + self.cookie + '\r\n')
 
 
 class HTTPCommsModule:
     def __init__(self, connection: socket.socket,
                  time_out:int = None,
                  max_clients: int = 1) -> None:
-        # super().__init__(connection, connection)
         self.__connection = connection
         self.__connection.settimeout(time_out)
         self.__max_connections = max_clients
@@ -124,7 +150,6 @@ class HTTPCommsModule:
     
     def read(self) -> Any:
         try:
-            print(self.__connection)
             return self.__connection.recv(2048).decode() # DOES SIZE MATTER???
         except (KeyboardInterrupt, SystemExit):
             raise
@@ -140,8 +165,7 @@ class HTTPCommsModule:
         except KeyError:
             response += status_codes[500]
         
-        response += str(header) + str(data) + '\n'#####will this cause an error, if bytes (check for b' in output)
-          
+        response += str(header) + str(data)#####will this cause an error, if bytes (check for b' in output)
         self.write(response)
     
     def render_file(self, file_name: str,
@@ -166,20 +190,26 @@ class HTTPSession:
         self.__client_id = client_id
     
     def form_insert(self, form: str) -> str:
-        id_tag = '<input hidden type="password" name="identifier" '
-        id_tag += f'value="{self.__client_id}"/>\r\n</form>'
+        id_tag = '<input hidden type="hidden" name="identifier" '
+        id_tag += f'value="{self.__client_id}"/>\n'
         
-        return form.replace('</form>', id_tag)
+        return form.replace('</form>', id_tag + '</form>')
     
     def form_file_insert(self, file_name: str) -> str:
         form = ''
         with open(file_name, 'rt') as form_file:
             form = form_file.read()
         
+        form.strip()
+        form += '\r\n'
+        
         return self.form_insert(form)
     
     @property
     def client_id(self) -> str:
+        return self.__client_id
+    
+    def __repr__(self) -> str:
         return self.__client_id
 
 class HTTPRequest:
@@ -187,23 +217,55 @@ class HTTPRequest:
         self.__name = connection.getpeername()[1] # client port number
         self.__connection = HTTPCommsModule(connection)
         self.__request = self.__connection.read()
+        self.__request_type: Optional[str] = None
+        self.__header: Optional[List[str]] = None
+        self.__body: Optional[str] = None
+        self.__partition_request()
         self.__parse_session()
-        print(self.__request)
+        
+    
+    def __partition_request(self) -> None:
+        request_lines = self.__request.split('\n')######WILL THIS WORRK WITH LINUX????
+        
+        #check if HTTP
+        if 'HTTP/1.1' in request_lines[0]:
+            
+            #look for index of end of header
+            for idx in range(len(request_lines)):
+                if '\n\r\n' in request_lines[idx]:
+                    break
+            idx += 1
+            header = request_lines[1:idx]
+            
+            self.__request_type = request_lines[0]
+            self.__header = header
+            self.__body = request_lines[idx:]
+    
     
     def __parse_session(self) -> None:
         ''' Parses the session identifier in the request.
-            Parses for the tag <input hidden type="password"
+            Parses for the query identifier=IDENTIFIER~
+            from form tag <input hidden type="hidden"
             name="identifier" value="IDENTIFIER"/>, where 
             IDENTIFIER is the session ID
             
             Stored a new HTTPSession object with client identifier,
             if found, or None.
         '''
+        if 'Cookie:' in self.__request:
+            for line in self.__header:
+                if 'Cookie:' in line:
+                    self.__session = HTTPSession(line.split('cookie1=')[1])
+                    return
+            
+        # print(f"REQUEST:\n{self.__request}")
         try:
             found_at_idx = self.__request.index('identifier=')
             start_idx = found_at_idx+len('identifier=')
-            end_idx = self.__request[start_idx:].index('"')
-            self.__session = HTTPSession(self.__request[start_idx:end_idx])
+            end_idx = self.__request[start_idx:].index(' ')
+            identifier = self.__request[start_idx:start_idx + end_idx]
+
+            self.__session = HTTPSession(identifier)
         except (ValueError, IndexError):
             self.__session = None
     
@@ -225,6 +287,18 @@ class HTTPRequest:
         self.__session = http_session
     
     @property
+    def request_type(self) -> Optional[str]:
+        return self.__request_type
+    
+    @property
+    def header(self) -> Optional[List[str]]:
+        return self.__header
+    
+    @property
+    def body(self) -> Optional[str]:
+        return self.__body
+    
+    @property
     def request(self) -> str:
         return self.__request
     
@@ -237,35 +311,50 @@ class HTTPRequest:
 if __name__ == '__main__':
     from sys import exit
     exit()
-    print(HTTPStatusCode.OK.value)
+    # print(HTTPStatusCode.OK.value)
     
-    from config import Config
+    # from config import Config
     
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
-        server.bind(('localhost', 7700))
-        server.listen(1)
-        connection, address = server.accept()
-        with connection:
-            comms = HTTPCommsModule(connection)
+    # with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+    #     server.bind(('localhost', 7700))
+    #     server.listen(1)
+    #     connection, address = server.accept()
+    #     with connection:
+    #         comms = HTTPCommsModule(connection)
             
-            print('BEFORE RENDER')
-            print(comms.read())
+    #         print('BEFORE RENDER')
+    #         print(comms.read())
             
-            header = HTTPHeader()
-            header.content_type = 'text/html; charset=utf-8'
-            comms.render_file(Config().LOGIN_FORM, header)
+    #         header = HTTPHeader()
+    #         header.content_type = 'text/html; charset=utf-8'
+    #         comms.render_file(Config().LOGIN_FORM, header)
             
             
-            print("GET")
-            print(comms.read())
-            print(comms.read())
+    #         print("GET")
+    #         print(comms.read())
+    #         print(comms.read())
             
-            # result = ''
-            # while not result:
-            #     result = comms.read()
+    #         # result = ''
+    #         # while not result:
+    #         #     result = comms.read()
             
-            # print(result)
+    #         # print(result)
     
-    import sys
-    sys.exit()
-    
+    # import sys
+    # sys.exit()
+
+'''
+GET /auth?username=Robert&password=pass&identifier=645731652113574.3543987 HTTP/1.1
+Host: localhost:6500
+User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:100.0) Gecko/20100101 Firefox/100.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Connection: keep-alive
+Referer: http://localhost:6500/
+Upgrade-Insecure-Requests: 1
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: same-origin
+Sec-Fetch-User: ?1
+Accept-Encoding: gzip, deflate
+'''

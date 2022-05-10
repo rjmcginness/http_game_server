@@ -5,15 +5,8 @@ Created on Thu May  5 21:50:29 2022
 @author: Robert J McGinness
 """
 
-import time
-
-from game_network import HTTPCommsModule
-from game_network import HTTPHeader
-from game_network import HTTPRequest
 from game_network import HTTPSession
-from game_utilities import FileDataAccess
 from config import Config
-
 
 
 class ServerClient:
@@ -45,33 +38,29 @@ class Authenticator:
         self.__client: ServerClient = None
         self.__authenticate(**kwargs)
     
-    # def __send_login_form(self) -> None:
-    #     header = HTTPHeader()
-    #     header.content_type = 'text/html; charset=utf-8'
-    #     client_id = self.__request.name + str(time.time())
-    #     session = HTTPSession(client_id)
-    #     self.__comms.render(session.form_file_insert(self.__config.LOGIN_FORM))
-        
-    #     self.__client = ServerClient('Robert', session, authenticated=True)
-    
     def __authenticate(self, **kwargs) -> None:
-     
+    
         #################################################################
         ######FAKED FOR NOW
         ######HIT DB INSTEAD
         #################################################################
         try:
-            header = kwargs['header']
-            query_idx = header.index('?') + 1 # starts one beyond ?
-            username, password = tuple(header[query_idx:].split('&'))
-            username = username.split('=')[1]
-            password = password.split('=')[1]
+            header = kwargs['request_type'].split(' ')
+            query_pairs = header[1].split('&')
+            username = ''
+            password = ''
+            for query_pair in query_pairs:
+                if 'username=' in query_pair:
+                    username = query_pair.split('username=')[1]
+                if 'password=' in query_pair:
+                    password = query_pair.split('password=')[1]
+            
             
             ##############################################
-            ######Authenicate username and passwork in DB
+            ######Authenicate username and password in DB
             
             self.__client = ServerClient(username,
-                                         kwargs['request'].session,
+                                         self.__request.session,
                                          authenticated=True)
         except ValueError:
             self.__client = None
