@@ -7,8 +7,11 @@ Created on Tue May 10 13:30:39 2022
 
 from abc import ABC
 from abc import abstractmethod
+from typing import Optional
+from typing import List
 
 from game_base import GameResult
+from game_network import HTTPRequest
 
 
 class GameView(ABC):
@@ -45,5 +48,9 @@ class GameView(ABC):
     
     @abstractmethod
     def render_result(self, result: GameResult) -> str:
+        ...
+    
+    @abstractmethod
+    def get_play(self, request: HTTPRequest) -> Dict:
         ...
 

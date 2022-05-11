@@ -110,8 +110,6 @@ class Player():
                 return cls(obj['id'], obj['name'], experience=obj['experience'])
         except KeyError:
             return obj
-        else:
-            return obj
     
     @staticmethod
     def build(player_data: Dict) -> Player:
@@ -173,6 +171,7 @@ class GameResult:
     
     @classmethod
     def decode(cls: Type, obj: object) -> GameResult:
+        return_object = obj
         try:
             if obj['_meta']['cls'] == cls.__name__:
                 players = []
@@ -181,15 +180,15 @@ class GameResult:
                 
                 winner = Player.build(obj['winner'])
                 
-                return cls(*players, game_name=obj['game_name'],
+                return_object = cls(*players, game_name=obj['game_name'],
                                               result_id=obj['id'],
                                               game_over=obj['game_over'],
                                               winner=winner,
                                               results=obj['results'])
-        except (KeyError, ImportError):
-            return obj
-        else:
-            return obj
+        except KeyError:
+            return_object = obj
+        
+        return return_object
     
     def __repr__(self) -> str:
         return str(self.encoding)

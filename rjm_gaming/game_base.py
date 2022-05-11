@@ -166,6 +166,11 @@ class Game(ABC):
         '''
         return player in self.__players
     
+    @property
+    def players(self) -> Tuple[Player]:
+        return tuple(self.__players)
+    
+    @property
     def player_count(self) -> int:
         '''Returns the number of players in the Game'''
         return len(self.__players)
@@ -190,7 +195,7 @@ class Game(ABC):
         return result
     
     @abstractmethod
-    def next_result(self, **kwargs) -> GameResult:
+    def _next_result(self, **kwargs) -> GameResult:
         ''' Creates the next result of the Game, based
             on the game's logic.  This should be
             implemented for each game subclass intended
