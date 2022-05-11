@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
+""" 
 Created on Tue May 10 13:59:48 2022
 
 @author: Robert J McGinness
@@ -146,8 +146,9 @@ class Quiz(Game):
         ''' Create and store QuizSubmission objects randomly
             arranged from Questions.  Answers are all None.
         '''
-        return tuple([QuizSubmission(question, None) for question \
-                          in sample(self.__questions, len(self.__questions))])
+        return tuple([QuizSubmission(question, None, q_id=i) for i, question \
+                                        in enumerate(sample(self.__questions, \
+                                        len(self.__questions)))])
          
     def _next_result(self, **kwargs) -> GameResult:
         
@@ -157,14 +158,15 @@ class Quiz(Game):
                               game_name='Quiz',
                               result_id=1, 
                               question=self.__current_question.question,
-                              prev_question=None)
+                              prev_question=None,
+                              next_question=self.__next_submission())
         
-        results = {}
+        results = {} # additional key-value pairs for results
         
         # process submission of quiz
-        if kwargs['input'] == 'answer':
+        if kwargs['input'] == 'submit':
             answer = kwargs['answer']
-            self.__current_submission.answer = answer
+            self.__current_submission.answer = Answer(answer)
             results['game_over'] = True
             results['results'] = tuple(enumerate(self.__quiz_submissions))
             results['num_correct'] = len(list(filter(q for q in \
@@ -175,30 +177,28 @@ class Quiz(Game):
         # process a submitted answer
         if kwargs['input'] == 'answer':
             answer = kwargs['answer']
-            self.__current_submission.answer = answer
+            self.__current_submission.answer = Answer(answer)
             self.__current_submission = self.__next_submission()
-            
-            if not self.__next_submission():
-                results['next_question'] = None
         
         # process a skipped answer
         if kwargs['input'] == 'skip':
             self.__current_submission.answer = None
             self.__current_submission = self.__next_submission()
-            if not self.__next_submission():
-                results['next_question'] = None
         
         # process going back to the last question
         if kwargs['input'] == 'back':
+            answer = kwargs['answer']
+            self.__current_submission.answer = Answer(answer)
             self.__current_submission = self.__prev_submission()
-            if not self.__prev_submission():
-                results['prev_question'] = None
             
         return GameResult(self.players,
                           game_name='Quiz',
                           result_id=len(self.results) + 1, 
+                          question_num=self.__current_submission.question.q_id,
                           question=self.__current_submission.question,
-                          answer=self.__current_submission.answer.value
+                          answer=self.__current_submission.answer.value,
+                          prev_question=self.__prev_submission(),
+                          next_question=self.__next_submission(),
                           **results)
             
     def __prev_submission(self) -> QuizSubmission:
@@ -218,24 +218,26 @@ class Quiz(Game):
             return None
         
 if __name__ == '__main__':
-    import time
-    q = Question("Where do sharks live?",
-                 'ocean',
-                 ['desert', 'lake', 'ocean', 'maountain'],
-                 time.ctime(),
-                 'multiple choice')
+    from sys import exit
+    exit()
+    # import time
+    # q = Question("Where do sharks live?",
+    #              'ocean',
+    #              ['desert', 'lake', 'ocean', 'maountain'],
+    #              time.ctime(),
+    #              'multiple choice')
     
-    json_data = json.dumps(q.encode())
-    print('TYPE', type(json_data))
-    q2 = json.loads(json_data, object_hook=Question.decode)
+    # json_data = json.dumps(q.encode())
+    # print('TYPE', type(json_data))
+    # q2 = json.loads(json_data, object_hook=Question.decode)
     
-    print(f'{json_data=}\n')
-    print(f'{q2=}')
+    # print(f'{json_data=}\n')
+    # print(f'{q2=}')
     
     
-    qs = QuizSubmission(q2, None)
-    print(qs.question, qs.answer, qs.isanswered, qs.iscorrect)
+    # qs = QuizSubmission(q2, None)
+    # print(qs.question, qs.answer, qs.isanswered, qs.iscorrect)
     
-    qs = QuizSubmission(q2, Answer('ocean'))
-    print(qs.question.answer, qs.answer, qs.isanswered, qs.iscorrect)
+    # qs = QuizSubmission(q2, Answer('ocean'))
+    # print(qs.question.answer, qs.answer, qs.isanswered, qs.iscorrect)
 
