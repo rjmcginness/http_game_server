@@ -6,21 +6,18 @@
 </head>
 <body>
     <div>
-        <label for="name">Player Name:</label>
         <h4 id="name">%NAME%</h4>
-        <label for="score">Player Name:</label>
-        <h4 id="score">%NAME%</h4>
-        <label for="streak">Player Name:</label>
-        <h4 id="streak">%NAME%</h4>
+        <h4 id="score">%SCORE%</h4>
+        <h4 id="streak">%STREAK%</h4>
     </div>
     <form action="/quiz" method="get">
         <fieldset>
             <legend>%QUESTION NUMBER%</legend>
         </fieldset>
         <div>
-            <a href="/quiz/previous">back</a>
-            <input type="submit" value="Answer" />
-            <a href="/quiz/next">skip</a>
+            <input type="submit" value="Back" name="back" />
+            <input type="submit" value="Answer" name="answer" />
+            <input type="submit" value="Skip" name="skip" />
         </div>
     </form>
 </body>
