@@ -9,6 +9,8 @@ from abc import ABC
 from abc import abstractmethod
 from typing import Optional
 from typing import List
+from typing import Any
+from typing import Dict
 
 from game_base import GameResult
 from game_network import HTTPRequest
@@ -23,7 +25,7 @@ class GameView(ABC):
         self.__scripts = scripts
     
     @property
-    def html_file(self) -> Optional[str}:
+    def html_file(self) -> Optional[str]:
         return self.__html_file
     
     @property
@@ -34,6 +36,12 @@ class GameView(ABC):
     def scripts(self) -> Optional[List[str]]:
         return self.__scripts
     
+    def render_file(self, file_name: str) -> str:
+        with open(file_name, 'rt') as file:
+            return file.read()
+        
+        return
+    
     @abstractmethod
     def render(self, data: Any) -> str:
         ...
@@ -43,7 +51,8 @@ class GameView(ABC):
         ...
     
     @abstractmethod
-    def render_result_with_file(self, result: GameResult) -> str:
+    def render_result_with_file(self, result: GameResult,
+                                      file_name:str) -> str:
         ...
     
     @abstractmethod
