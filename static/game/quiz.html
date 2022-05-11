@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>%QUIZ%</title>
+</head>
+<body>
+    <div>
+        <h4 id="name">%NAME%</h4>
+        <h4 id="score">%SCORE%</h4>
+        <h4 id="streak">%STREAK%</h4>
+    </div>
+    <form action="/quiz" method="get">
+        <fieldset>
+            <legend>%QUESTION NUMBER%</legend>
+        </fieldset>
+        <div>
+            <input type="submit" value="Back" name="back" />
+            <input type="submit" value="Answer" name="answer" />
+            <input type="submit" value="Skip" name="skip" />
+        </div>
+    </form>
+</body>
+</html>

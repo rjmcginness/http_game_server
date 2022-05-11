@@ -29,6 +29,10 @@ class ServerClient:
     
     def __repr__(self) -> str:
         return f'name={self.__name} id={self.__id} authenticated={self.__authenticated}'
+    
+    def __eq__(self, client2) -> bool:
+        return (self.__name == client2.name and 
+                self.client_id == client2.client_id)
 
 class Authenticator:
     def __init__(self, config: Config, **kwargs) -> None:

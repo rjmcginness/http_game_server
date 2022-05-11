@@ -1,61 +1,56 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Apr 28 13:17:21 2022
+Created on Tue May 10 13:30:39 2022
 
 @author: Robert J McGinness
 """
 
 from abc import ABC
 from abc import abstractmethod
-from typing import Any
+from typing import Optional
+from typing import List
 
-from game_model import GameResult
-from game_utilities import CommsModule
-from game_utilities import CommRegistrant
+from game_base import GameResult
+from game_network import HTTPRequest
 
 
-class GameView(ABC, CommRegistrant):
-    def __init__(self, name: str, comms: CommsModule, version: str = '0.0') -> None:
-        self.__name = name
-        self.__comms = comms
-        self.__version = version
-        self.__comms.register_output(self)
+class GameView(ABC):
+    def __init__(self, html_file: Optional[str] = None,
+                       css_files: Optional[List[str]] = None,
+                       scripts: Optional[List[str]] = None) -> None:
+        self.__html_file = html_file
+        self.__css_files = css_files
+        self.__scripts = scripts
     
     @property
-    def name(self) -> str:
-        return self.__name
+    def html_file(self) -> Optional[str}:
+        return self.__html_file
     
     @property
-    def version(self) -> str:
-        return self.__version
+    def css_files(self) -> Optional[List[str]]:
+        return self.__css_files
+    
+    @property
+    def scripts(self) -> Optional[List[str]]:
+        return self.__scripts
     
     @abstractmethod
-    def render_result(self, result: GameResult) -> Any:
+    def render(self, data: Any) -> str:
         ...
-    
-    # @abstractmethod
-    # def get(self) -> Any:
-    #     ...
     
     @abstractmethod
-    def put(self, data: Any) -> None:
+    def render_with_file(self, **kwargs) -> str:
         ...
-    
-    def introduction(self, data: Any) -> Any:
-        pass
     
     @abstractmethod
-    def render(self, data: Any) -> Any:
+    def render_result_with_file(self, result: GameResult) -> str:
         ...
     
-    # def render_all(self) -> Any:
-    #     pass
+    @abstractmethod
+    def render_result(self, result: GameResult) -> str:
+        ...
     
-    def game_over(self, data: Any) -> Any:
-        pass
-    
-    # def start(self) -> Any:
-    #     return (self.introduction(), self.render_all(), self.game_over()
-        
-    
+    @abstractmethod
+    def get_play(self, request: HTTPRequest) -> Dict:
+        ...
 
