@@ -19,9 +19,6 @@ from rjm_gaming.game_base import GameResult
 from rjm_gaming.game_base import Player
 
 
-    
-    
-
 class Question:
     def __init__(self, question: str,
                  answer: str,
@@ -124,8 +121,7 @@ class QuizSubmission:
             
 class Quiz(Game):
     def __init__(self, name: str, player: Player, quiz_file: str) -> None:
-        super().__init__([player])
-        self.__name = name
+        super().__init__(name, [player])
         self.__quiz_file = quiz_file
         self.__load_quiz()
         self.__quiz_submissions = self.__initialize()
