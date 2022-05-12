@@ -2,13 +2,23 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <title>RJM GAMING</title>
-    <link rel="stylesheet" type="text/css" href="css/menu.css"/>
+    <title>RJM GAMING METAVERSE - Main Menu</title>
+    <style>
+        input[type="submit"] {
+            border: none;
+            background: none;
+            color: darkblue;
+            font-size: 14px;
+            text-decoration-line: underline;
+        }
+
+    </style>
 </head>
 <body>
-    <h1>Menu</h1>
-    <table>
-        GAMES
-    </table>
+    <h1>Games</h1>
+    <div>%GAMES%</div>
+    <form action="/exit" method="get">
+        <input type="submit" value="Exit" name="input" />
+    </form>
 </body>
 </html>

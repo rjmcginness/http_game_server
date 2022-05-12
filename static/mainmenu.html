@@ -3,13 +3,28 @@
 <head>
     <meta charset="utf-8" />
     <title>RJM GAMING METAVERSE - Main Menu</title>
+    <style>
+        input[type="submit"] {
+            border: none;
+            background: none;
+            color: darkblue;
+            font-size: 14px;
+            text-decoration-line: underline;
+        }
+
+    </style>
 </head>
 <body>
     <h1>Main Menu</h1>
-    <a href="/admin">Administrator</a>
-    <a href="/games">Play Games</a>
+    <form action="/games" method="get">
+        <input type="submit" value="Games" name="input" />
+    </form>
+    <form action="/admin" method="get">
+        <input type="submit" value="Admin" name="input" />
+    </form>
+    <br />
     <form action="/exit" method="get">
-        <input type="submit" value="Exit" />
+        <input type="submit" value="Exit" name="input" />
     </form>
 </body>
 </html>

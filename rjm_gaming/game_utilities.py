@@ -7,9 +7,9 @@ Created on Thu Apr 28 13:22:11 2022
 
 from abc import ABC
 from abc import abstractmethod
-from typing import Any
 from typing import Union
 from typing import Type
+from typing import List
 from importlib import import_module
 
 class GameCommsError(Exception):
@@ -64,12 +64,21 @@ class FileDataAccess(DataAccess):
     def initialize(self) -> None:
         '''Reads the entire file and stores in __data attribute'''
         open_flag = 'rb' if self.__raw else 'rt'
-        with open(self.path, open_flag) as fle:
-            self.__data = fle.read()
+        # with open(self.path, open_flag) as fle:
+        #     self.__data = fle.read()
+        
+        self.__data = []
+        
+        for line in open(self.path, open_flag):
+            self.__data.append(line)
 
     @property
-    def data(self) -> Union[bytes, str]:
+    def data_lines(self) -> List[str]:
         return self.__data
+
+    @property
+    def data(self) -> Union[bytes, str]:# may not work with bytes
+        return '\n'.join(self.__data)
 
 class ClassLoader:
     @staticmethod

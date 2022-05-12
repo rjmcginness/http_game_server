@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>%QUIZ%</title>
+</head>
+<body>
+    <div>
+        <label for="name">Player Name:</label>
+        <h4 id="name">%NAME%</h4>
+        <label for="score">Player Name:</label>
+        <h4 id="score">%NAME%</h4>
+        <label for="streak">Player Name:</label>
+        <h4 id="streak">%NAME%</h4>
+    </div>
+    <form action="/quiz" method="get">
+        <fieldset>
+            <legend>%QUESTION NUMBER%</legend>
+        </fieldset>
+        <div>
+            <a href="/quiz/previous">back</a>
+            <input type="submit" value="Answer" />
+            <a href="/quiz/next">skip</a>
+        </div>
+    </form>
+</body>
+</html>

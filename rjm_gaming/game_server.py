@@ -20,7 +20,9 @@ from game_authentication import Authenticator
 from game_authentication import ServerClient
 from config import Config
 from game_engine import GameEngine
-from game_utilities import ClassLoader
+from game_utilities import DataAccess
+from game_utilities import FileDataAccess
+
 # from functools import wraps
 
 
@@ -66,7 +68,7 @@ class ServerClientService(Thread):
         request.connection.render(login_form, header=header)
     
     def __process_request(self, request: HTTPRequest) -> None:
-        
+        '''Distributes the HTTPRequest to the proper CRUD handler'''
         kwargs = dict(request=request, request_type=request.request_type,
                                           header=request.header,
                                           body=request.body)
@@ -129,6 +131,8 @@ class GameClientService(ServerClientService):
     
     def get(self, **kwargs) -> None:
         
+        ######TODO: MAKE MORE ROBUST BY ROUTING UNRECOGNIZED REQUESTS
+        
         if self.client is None:
             # run authenticator to authenticate client
             authenticator = Authenticator(self.config, **kwargs)
@@ -136,11 +140,28 @@ class GameClientService(ServerClientService):
             if not authenticator.success:
                 print('AUTHENTICATION FAILED')
                 self.__client_id = None # Have to resend form
+                self._ServerClientService__client = authenticator.client
+                print(f'User Authenticated:\n{self.client.name} ({self.client.client_id}) has entered')
+                self.__send_main_menu(kwargs['request'])
                 return
-
-            self._ServerClientService__client = authenticator.client
-            print(f'User Authenticated:\n{self.client.name} ({self.client.client_id}) has entered')
-            self.__send_main_menu(kwargs['request'])
+            
+            command = self.__parse_input(kwargs['request_type']).lower()
+            request = kwargs['request']
+            # send main menu
+            if command is None or command == 'menu':
+                self.__send_main_menu(request)
+                return
+            
+            # send games menu
+            if command == 'games':
+                self.__send_games_menu(request)
+                return
+            
+            # send admin menu
+            if command == 'admin':
+                self.__send_admin_menu(request)
+                return
+            
     
     def put(self, **kwargs) -> None:
         print("IMPLEMENT PUT")
@@ -154,25 +175,101 @@ class GameClientService(ServerClientService):
     def error(self, **kwargs) -> None:
         print("IMPLEMENT ERROR")
         
+    def __read_output_file(self, file_name: str) -> str:
+        '''SIMPLY READS IN WHOLE FILE AND RETURNS AS STRING'''
+        html = ''
+        with open(self.config.MENU_FILE, 'rt') as menu_file:
+            html = menu_file.read()
+        
+        return html
+    
+    def __prep_output_file(self, output_file: str, request: HTTPRequest) -> str:
+        '''Embeds session (client_id)'''
+        ######TODO: Consider checking whether this is a form, if not, add
+        ######cookie with client id (session) to response header
+        if not request.session:
+            return output_file
+        
+        return request.session.form_insert(output_file)
+        
     def __send_main_menu(self, request: HTTPRequest) -> None:
         
         ######SEEMS LIKE THIS PARADIGM MAY BE NICE FOR A DECORATOR
-        ######SEE ServerClientService_senf__authentication also
+        ######SEE ServerClientService_send__authentication also
         header = HTTPHeader()
-        header.set_cookie = f'cookie1={request.session}'
+        # header.set_cookie = f'cookie1={request.session}'
         header.content_type = 'text/html; charset=utf-8'
         
-        main_menu = request.session.form_file_insert(self.config.MENU_FILE)
+        # load main menu and prepare with session, if present
+        main_menu = self.__read_output_file(self.config.MENU_FILE)
+        main_menu = self.__prep_output_file(main_menu, request)
         
         header.content_length = str(len(main_menu))
         
-        request.connection.render_file(main_menu, header=header)
+        request.connection.render(main_menu, header=header)
+    
+    def __parse_input(self, request_type: str) -> str:
+        ''' Get the input value from request.
+            Returns the value as a string, if present.
+            Otherwise, returns None.
+        '''
+        query = request_type.split(' ')[1]
+        sections = query.split('&')
+        
+        input_value = None
+        for section in sections:
+            if 'input=' in section:
+                idx = section.index('input=')
+                input_value = section[idx + len('input=')]
+        
+        return input_value
+    
+    def __send_games_menu(self, request: HTTPRequest) -> None:
+        
+        header = HTTPHeader()
+        header.content_type = 'text/html; charset=utf-8'
+        
+        games_menu = self.__read_output_file(self.config.MENU)
+        
+        game_names = self.__engine.get_games()
+        
+        games_html = ''
+        for name in game_names:
+            games_html += self.__build_game_html(name)
+            
+        games_menu = games_menu.replace('%GAMES%', games_html)
+        
+        # prep file after adding game html
+        games_menu = self.__prep_output_file(games_menu, request)
+        
+        header.content_length = len(games_menu)
+        
+        request.connection.render(games_menu, header=header)
+        
+    
+    def __build_game_html(self, game_name: str) -> str:
+        game_link = '<form action="/games" method="get">'
+        game_link += f'<input type="submit" value="{game_name}" name="game" />'
+        game_link += '</form>'
+        
+        return game_link
+
+    def __send_admin_menu(self, request: HTTPRequest) -> None:
+        print("NOT IMPLEMENTED")
+        ######SEND BACK MAIN MENU FOR NOW
+        self.__send_main_menu(request)
+        
     
 
 class GameServer:######Consider implementing as ContextManager
-    def __init__(self, address: str = 'localhost', port: int = 6500) -> None:
+    def __init__(self, address: str = 'localhost',
+                       port: int = 6500,
+                       data_access: DataAccess = \
+                       FileDataAccess('../init/game_init.i', raw=False)) -> None:
+        
         self.__server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.__clients = {}
+        self.__engine = GameEngine(data_access)
         self.__server.bind((address, port))
         self.__server.listen(5)
         print(f'Starting server on {port}...')
@@ -181,7 +278,6 @@ class GameServer:######Consider implementing as ContextManager
         with self.__server as server:
             try:
                 while True:
-                
                     connection, address = server.accept()
                     print("New Connection:", connection)
                     RequestRouter(connection, self)
