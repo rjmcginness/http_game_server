@@ -7,17 +7,19 @@
 <body>
     <div>
         <h4 id="name">%NAME%</h4>
-        <h4 id="score">%SCORE%</h4>
-        <h4 id="streak">%STREAK%</h4>
     </div>
     <form action="/quiz" method="get">
         <fieldset>
             <legend>%QUESTION NUMBER%</legend>
         </fieldset>
         <div>
-            <input type="submit" value="Back" name="back" />
-            <input type="submit" value="Answer" name="answer" />
-            <input type="submit" value="Skip" name="skip" />
+            <input type="submit" value="Back" name="input" />
+            <input type="submit" value="Answer" name="input" />
+            <input type="submit" value="Skip" name="input" />
+        </div>
+        <div></div>
+        <div>
+            <input type="submit" value="Submit" name="input" />
         </div>
     </form>
 </body>

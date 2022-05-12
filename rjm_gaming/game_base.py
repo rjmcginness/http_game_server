@@ -20,18 +20,28 @@ class GameInvalidError:
     pass
 
 class GameResult:
-    def __init__(self, *players: Tuple[Player],
+    def __init__(self, players: Tuple[Player],
                         game_name: str = '',
                         result_id: int = 0,
                         game_over: bool = False,
                         winner: Optional[Player] = None,
                         **kwargs) -> None:
+        
+        self.__players = players
+        # self.__session = session
         self.__game_name = game_name
         self.__id = result_id
-        self.__players = tuple(players)
         self.__game_over = game_over
         self.__winner = winner
         self.__results: Dict = kwargs
+    
+    @property 
+    def players(self) -> Tuple:
+        return self.__players
+    
+    # @property
+    # def session(self) -> str:
+    #     return self.__session
     
     @property
     def game_name(self) -> str:
@@ -44,10 +54,6 @@ class GameResult:
     @property 
     def game_over(self) -> bool:
         return self.__game_over
-    
-    @property 
-    def players(self) -> Tuple:
-        return self.__players
     
     @property 
     def winner(self) -> Player:
@@ -65,7 +71,7 @@ class GameResult:
                 'id':self.__id,
                 'players':[player.encoding for player in self.__players],
                 'game_over':self.__game_over,
-                'winner':self.__winner.encoding,
+                'winner':self.__winner.encoding if self.__winner else None,
                 'results':self.__results}
     
     @classmethod
@@ -85,8 +91,7 @@ class GameResult:
                                               results=obj['results'])
         except (KeyError, ImportError):
             return obj
-        else:
-            return obj
+        
     
     def __repr__(self) -> str:
         return str(self.encoding)
@@ -126,6 +131,29 @@ class Player(ServerClient):
     @iswinner.setter
     def iswinner(self, win: bool) -> None:
         self.__iswinner = win
+    
+    @property
+    def encoding(self) -> Dict:
+        return {'_meta':{'module':self.__module__,
+                         'cls':self.__class__.__name__},
+                'name':self.name,
+                'id':self.client_id,
+                'auth':self.isauthenticated,
+                'experience':self.__experience,
+                'score':self.__score,
+                'winner':self.__iswinner}
+    
+    @classmethod
+    def decode(cls: Type, obj: object):
+        try:
+            if obj['_meta']['cls'] == cls.__name__:
+                return cls(obj['name'],
+                           obj['id'],
+                           experience=obj['experience'],
+                           score=obj['score'],
+                           iswinner=obj['winner'])
+        except KeyError:
+            return obj
     
 class Game(ABC):
     ''' A Game is a state machine.  This is

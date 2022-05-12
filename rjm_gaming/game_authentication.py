@@ -5,12 +5,11 @@ Created on Thu May  5 21:50:29 2022
 @author: Robert J McGinness
 """
 
-from game_network import HTTPSession
 from config import Config
 
 
 class ServerClient:
-    def __init__(self, name: str, session: HTTPSession, authenticated: bool = False) -> None:
+    def __init__(self, name: str, session: str, authenticated: bool = False) -> None:
         self.__name = name
         self.__session = session
         self.__authenticated = authenticated
@@ -21,7 +20,7 @@ class ServerClient:
     
     @property
     def client_id(self) -> str:
-        return self.__session.client_id
+        return self.__session
     
     @property
     def isauthenticated(self) -> bool:
@@ -33,6 +32,22 @@ class ServerClient:
     def __eq__(self, client2) -> bool:
         return (self.__name == client2.name and 
                 self.client_id == client2.client_id)
+    
+    # @property
+    # def encoding(self) -> Dict:
+    #     return {'_meta':{'module':self.__module__,
+    #                      'cls':self.__class__.__name__},
+    #             'name':self.__name,
+    #             'id':self.__id,
+    #             'experience':self.__experience}
+    
+    # @classmethod
+    # def decode(cls: Type, obj: object):
+    #     try:
+    #         if obj['_meta']['cls'] == cls.__name__:
+    #             return cls(obj['id'], obj['name'], experience=obj['experience'])
+    #     except KeyError:
+    #         return obj
 
 class Authenticator:
     def __init__(self, config: Config, **kwargs) -> None:

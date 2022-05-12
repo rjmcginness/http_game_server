@@ -9,21 +9,29 @@ from abc import ABC
 from abc import abstractmethod
 from typing import Optional
 from typing import List
+from typing import Any
+from typing import Dict
 
 from game_base import GameResult
 from game_network import HTTPRequest
 
 
 class GameView(ABC):
-    def __init__(self, html_file: Optional[str] = None,
+    def __init__(self, view_id: str,
+                       html_file: Optional[str] = None,
                        css_files: Optional[List[str]] = None,
                        scripts: Optional[List[str]] = None) -> None:
+        self.__id = view_id
         self.__html_file = html_file
         self.__css_files = css_files
         self.__scripts = scripts
     
     @property
-    def html_file(self) -> Optional[str}:
+    def view_id(self) -> str:
+        return self.__view_id
+    
+    @property
+    def html_file(self) -> Optional[str]:
         return self.__html_file
     
     @property
@@ -34,16 +42,31 @@ class GameView(ABC):
     def scripts(self) -> Optional[List[str]]:
         return self.__scripts
     
+    def render_file(self, file_name: str) -> str:
+        with open(file_name, 'rt') as file:
+            return file.read()
+        
+        return
+    
+    @abstractmethod
+    def introduction(self, **kwargs) -> str:
+        ...
+    
+    @abstractmethod
+    def game_over(self, **kwargs) -> str:
+        ...
+    
     @abstractmethod
     def render(self, data: Any) -> str:
         ...
     
     @abstractmethod
-    def render_with_file(self, **kwargs) -> str:
+    def render_with_file(self, file_name: str, **kwargs) -> str:
         ...
     
     @abstractmethod
-    def render_result_with_file(self, result: GameResult) -> str:
+    def render_result_with_file(self, result: GameResult,
+                                      file_name:str) -> str:
         ...
     
     @abstractmethod

@@ -11,15 +11,13 @@ from importlib import import_module
 import time
 
 from game_model import GameInvalidError
-from game_utilities import CommsModule
 from game_utilities import DataAccess
-from game_utilities import FileDataAccess
+from game_utilities import ClassLoader
 
-######UNLINK GAME FROM COMMS???????
-#######REWRITE THIS SO THAT IS FUNCTIONS TO GENERATE GAMES AND MATCH PLAYERS
+
+
 class GameEngine:
-    def __init__(self, comms:CommsModule, data_access: DataAccess) -> None:
-        self.__comms = comms
+    def __init__(self, data_access: DataAccess) -> None:
         self.__data_access = data_access
         # self.__games = self.__data_access.games
         self.__cached_games = {}
@@ -29,8 +27,8 @@ class GameEngine:
         
         try:
             cached_game = self.__cached_games[name]
-            return {'game' : cached_game['game_class'](name, self.__comms), 
-                    'view' : cached_game['view_class'](self.__comms, time.time())}
+            return {'game' : cached_game['game_class'](name), 
+                    'view' : cached_game['view_class'](time.time())}
         except KeyError:
             pass
         
@@ -57,24 +55,18 @@ class GameEngine:
     def run_game(self, game_name: str) -> None:
         game_objects = self.load_game(game_name)
         game_objects['game'].play()
-        self.__comms.unregister(game_objects['view'])
-        self.__comms.delete_logic()
-            
-    @property
-    def comms(self) -> CommsModule:
-        return self.__comms
+
     
     def get_games(self) -> List[str]:
         return [game for game in self.__games]
     
 if __name__ == '__main__':
-    
-    comms = TerminalCommsModule()
+    from game_utilities import FileDataAccess
     
     fa = FileDataAccess('./game_init.i')
     fa.initialize()
     print(fa.games)
     
-    engine = GameEngine(comms, fa)
-    engine.run_game('War')
+    engine = GameEngine(fa)
+    engine.run_game('Quiz')
     
