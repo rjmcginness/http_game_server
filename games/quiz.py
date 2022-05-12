@@ -152,8 +152,10 @@ class Quiz(Game):
          
     def _next_result(self, **kwargs) -> GameResult:
         
+        command = kwargs['input'].lower()
+        
         # process start of new quiz
-        if kwargs['input'] == 'start':
+        if command == 'start':
             return GameResult(self.players,
                               game_name='Quiz',
                               result_id=1, 
@@ -162,38 +164,42 @@ class Quiz(Game):
                               next_question=self.__next_submission())
         
         results = {} # additional key-value pairs for results
+        game_over = False
         
         # process submission of quiz
-        if kwargs['input'] == 'submit':
+        if command == 'submit':
             answer = kwargs['answer']
             self.__current_submission.answer = Answer(answer)
-            results['game_over'] = True
-            results['results'] = tuple(enumerate(self.__quiz_submissions))
+            # results['game_over'] = True
+            game_over = True
+            # results['results'] = tuple(enumerate(self.__quiz_submissions))
             results['num_correct'] = len(list(filter(q for q in \
                                                      self.__quiz_submissions \
                                                      if q.iscorrect)))
             results['percent'] = f"{100*results['num_correct']/len(self.__quiz_submissions)}%"
+            results['questions'] = tuple(self.__quiz_submissions)
 
         # process a submitted answer
-        if kwargs['input'] == 'answer':
+        if command == 'answer':
             answer = kwargs['answer']
             self.__current_submission.answer = Answer(answer)
             self.__current_submission = self.__next_submission()
         
         # process a skipped answer
-        if kwargs['input'] == 'skip':
+        if command == 'skip':
             self.__current_submission.answer = None
             self.__current_submission = self.__next_submission()
         
         # process going back to the last question
-        if kwargs['input'] == 'back':
+        if command == 'back':
             answer = kwargs['answer']
             self.__current_submission.answer = Answer(answer)
             self.__current_submission = self.__prev_submission()
             
         return GameResult(self.players,
                           game_name='Quiz',
-                          result_id=len(self.results) + 1, 
+                          result_id=len(self.results) + 1,
+                          game_over=game_over,
                           question_num=self.__current_submission.question.q_id,
                           question=self.__current_submission.question,
                           answer=self.__current_submission.answer.value,
@@ -220,6 +226,16 @@ class Quiz(Game):
 if __name__ == '__main__':
     from sys import exit
     exit()
+    #######################################################
+    ######TEST LOADING QUIZ
+    
+    #######################################################
+    ######TEST RUNNING GAME AND GENERATING A GAMERESULT
+    
+    
+    
+    
+    
     # import time
     # q = Question("Where do sharks live?",
     #              'ocean',
@@ -240,4 +256,4 @@ if __name__ == '__main__':
     
     # qs = QuizSubmission(q2, Answer('ocean'))
     # print(qs.question.answer, qs.answer, qs.isanswered, qs.iscorrect)
-
+    
