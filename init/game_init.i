@@ -1,1 +1,1 @@
-
+Quiz~{"game": {"_meta": {"module": "quiz", "cls": "Quiz", "pkg": "."}, "kwargs": {"name": "", "player": "", "quiz_file": ".test_quiz"}}, "view": {"_meta": {"module": "quiz_view", "cls": "QuizView", "pkg": "."}, "kwargs": {"view_id": "", "html_file": "", "css_files": "", "scripts": ""}}}
