@@ -1,2 +1,4 @@
 # rjm_games_V2
-New Version of game_engine
+HTTP Game Server
+utilizes game_engine from version 1
+complete redesign
