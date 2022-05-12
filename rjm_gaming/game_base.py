@@ -13,8 +13,10 @@ from typing import Optional
 from typing import Tuple
 from typing import Dict
 from typing import Type
+import json
 
 from game_authentication import ServerClient
+from game_utilities import ClassLoader
 
 class GameInvalidError:
     pass
@@ -161,14 +163,19 @@ class Game(ABC):
         the next_result method must be implemented
         by instantiable subclasses
     '''
-    def __init__(self, players: Optional[List[Player]] = None) -> None:
+    def __init__(self, name: str,
+                  players: Optional[List[Player]] = None,
+                  **kwargs) -> None:
         ''' Since every Game has at least one player,
             the initializer provides the option to
             instantiate a Game object with a list of
             players.
             This will default to None.  Players may
             be added or removed via other methods.
+            kwargs can be used for subclasses and
+            reflection
         '''
+        self.__name = name
         if not players:
             self.__players = []
         else:
@@ -193,6 +200,10 @@ class Game(ABC):
             False otherwise.
         '''
         return player in self.__players
+    
+    @property
+    def name(self) -> str:
+        return self.__name
     
     @property
     def players(self) -> Tuple[Player]:
@@ -231,4 +242,110 @@ class Game(ABC):
         '''
         ...
     
+class ClassInitMeta(json.JSONEncoder):
+    def __init__(self, class_name: str,
+                       module_name: str,
+                       package_name: str = '.') -> None:
+        
+        self.__class = ClassLoader.load_class(class_name,
+                                              module_name,
+                                              package_name)
+        self.__module = self.__class.__module__
+        self.__package = package_name
+        self.__init_params = list(self.__class.__init__.__annotations__)
+        self.__init_params.remove('return')
+        self.__kwargs = {param: '' for param in self.__init_params}
+        
+    @property
+    def game_class(self) -> Type:
+        return self.__class
     
+    @property
+    def init_params(self) -> Dict:
+        return self.__kwargs
+    
+    def add_kwarg(self, key: str, value: str) -> None:
+        self.__kwargs[key] = value
+    
+    def default(self, obj: object) -> Dict:
+        if isinstance(obj, self.__class):
+            return self.encoding
+        
+        return json.JSONEncoder.default(self, obj)
+    
+    @property
+    def encoding(self) -> Dict:
+        
+        return {'_meta':{'module':self.__module,
+                         'cls':self.__class.__name__,
+                         'pkg':self.__package},
+                'kwargs': self.__kwargs}
+
+    @classmethod
+    def decode(cls, obj: object) -> "ClassInitMeta":
+        
+        try:
+            class_name = obj['_meta']['cls']
+            module_name = obj['_meta']['module']
+            package_name = obj['_meta']['pkg']
+            meta = cls(class_name, module_name, package_name)
+            
+            for kw, arg in obj['kwargs'].items():
+                if arg is not None and arg != '':
+                    meta.add_kwarg(kw, arg)
+                
+            return meta
+        except (KeyError, ImportError):
+            return obj
+        
+class GameInitMeta(ClassInitMeta):
+    def __init__(self, specifier: str,
+                       class_name: str,
+                       module_name: str,
+                       package_name: str = '.') -> None:
+        super().__init__(class_name, module_name, package_name)
+        self.__specifier = specifier
+    
+    @property
+    def encoding(self) -> Dict:
+        
+        return {self.__specifier:super().encoding}
+
+    @classmethod
+    def decode(cls, obj: object) -> "GameInitMeta":
+        
+        try:
+            specifier = obj['specifier']
+            class_name = obj['_meta']['cls']
+            module_name = obj['_meta']['module']
+            package_name = obj['_meta']['pkg']
+            meta = cls(specifier, class_name, module_name, package_name)
+            
+            for kw, arg in obj['kwargs'].items():
+                if arg is not None and arg != '':
+                    meta.add_kwarg(kw, arg)
+                
+            return meta
+        except (KeyError, ImportError):
+            return obj
+
+
+
+
+if __name__ == '__main__':
+    from rjm_gaming.game_view import GameView
+    import json
+    
+    def initialize_games(self) -> List:
+        for line in open('../init/game_init.i'):
+            game_meta, view_meta = json.loads(line, GameInitMeta.decode)
+            print(game_meta, view_meta)
+       
+            
+        
+        
+    game_meta = ClassInitMeta('Game', 'rjm_gaming.game_base')
+    view_meta = ClassInitMeta('GameView', 'rjm_gaming.game_view')
+    meta = {'game':game_meta, 'view':view_meta}
+    json_meta = json.dumps(meta)
+    print(json.loads(json_meta, object_hook=GameInitMeta.decode))

@@ -221,6 +221,7 @@ class HTTPRequest:
         self.__header: Optional[List[str]] = None
         self.__body: Optional[str] = None
         self.__partition_request()
+        self.__session: Optional[HTTPSession] = None
         self.__parse_session()
         
     
@@ -240,6 +241,8 @@ class HTTPRequest:
             self.__request_type = request_lines[0]
             self.__header = header
             self.__body = request_lines[idx:]
+            
+            
     
     
     def __parse_session(self) -> None:
