@@ -159,8 +159,8 @@ class QuizView(GameView):
             Return request as game-appropriate 
             key-value pairs.
         '''
-        # print(request.request_type())
-        # request_type = request.request_type()
+        #package request in key-value pairs matching what quiz.py needs
+        
         request = request.split(' ')[1]#get the middle with query
         play = {'input': None}
         try:
@@ -172,8 +172,6 @@ class QuizView(GameView):
             play['input'] = 'start'
         
         return play
-        ######package request in key-value pairs matching what quiz.py needs
-        ######to see
     
     def __parse_answer(self, query_line: str) -> str:
         answer = ''

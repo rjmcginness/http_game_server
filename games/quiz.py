@@ -35,8 +35,8 @@ class Question:
         return (self.question == q2.question and \
                     self.answer == q2.answer and \
                     self.q_id == q2.q_id)
-    
-    def encode(self) -> Dict:
+    @property
+    def encoding(self) -> Dict:
         ''' This encodes Question instances as a
             dictionary (key:value pairs).  This allows
             it to be converted to a string by the json
@@ -123,6 +123,7 @@ class Quiz(Game):
     def __init__(self, name: str, player: Player, quiz_file: str) -> None:
         super().__init__(name, [player])
         self.__quiz_file = quiz_file
+        self.__questions = []
         self.__load_quiz()
         self.__quiz_submissions = self.__initialize()
         
@@ -142,9 +143,13 @@ class Quiz(Game):
         ''' Create and store QuizSubmission objects randomly
             arranged from Questions.  Answers are all None.
         '''
-        return tuple([QuizSubmission(question, None, q_id=i) for i, question \
-                                        in enumerate(sample(self.__questions, \
-                                        len(self.__questions)))])
+        submissions = []
+        for i, question in enumerate(sample(self.__questions, 
+                                            len(self.__questions))):
+            question.q_id = i  
+            submissions.append(QuizSubmission(question, None))
+            
+        return submissions
          
     def _next_result(self, **kwargs) -> GameResult:
         
@@ -220,15 +225,25 @@ class Quiz(Game):
             return None
         
 if __name__ == '__main__':
-    from sys import exit
-    exit()
+    # from sys import exit
+    # exit()
     #######################################################
     ######TEST LOADING QUIZ
     
     #######################################################
     ######TEST RUNNING GAME AND GENERATING A GAMERESULT
     
+    import json
+    import time
     
+    q = Question("Where do sharks live?",
+                 'ocean',
+                 ['desert', 'lake', 'ocean', 'maountain'],
+                 str(time.time()),
+                 'multiple choice')
+    
+    json_data = json.dumps(q.encoding)
+    print(json_data)
     
     
     
