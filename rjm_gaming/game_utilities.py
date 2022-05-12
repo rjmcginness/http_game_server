@@ -15,31 +15,6 @@ from importlib import import_module
 class GameCommsError(Exception):
     pass
 
-# class CommsModule(ABC):
-#     def __init__(self, in_: Any, out: Any):
-#         self.__in: in_
-#         self.__out: out
-    
-#     @property
-#     def in_(self) -> Any:
-#         return self.__in
-    
-#     @property
-#     def out(self) -> Any:
-#         return self.__out
-    
-#     @abstractmethod
-#     def write(self, data: Any) -> None:
-#         ...
-     
-#     @abstractmethod
-#     def read(self) -> Any:
-#         ...
-    
-#     @abstractmethod
-#     def close(self) -> None:
-#         ...
-
 class DataAccess(ABC):
     def __init__(self, init_path) -> None:
         self.__path = init_path

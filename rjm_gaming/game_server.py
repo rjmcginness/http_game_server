@@ -132,6 +132,7 @@ class GameClientService(ServerClientService):
     def get(self, **kwargs) -> None:
         
         ######TODO: MAKE MORE ROBUST BY ROUTING UNRECOGNIZED REQUESTS
+        ######to safety
         
         if self.client is None:
             # run authenticator to authenticate client
