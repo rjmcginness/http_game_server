@@ -14,7 +14,7 @@ import json
 from game_base import GameInvalidError
 from game_utilities import DataAccess
 from game_utilities import ClassLoader
-from game_base import GameInitMeta
+from game_base import ClassInitMeta
 
 
 
@@ -22,62 +22,58 @@ class GameEngine:
     def __init__(self, data_access: DataAccess) -> None:
         self.__data_access = data_access
         self.__game_init_list = self.__initialize_games()
-        
-        self.__cached_games = {}
     
     def __initialize_games(self) -> List:
+        ''' Deserializes GameMeta data from the DataAccess connection
+            Returns a list of dictionaries containing keys name and 
+            class_meta.  The value for name is teh name of the game.
+            The value for class_meta is also a dictionary.  The keys 
+            are game and view, which have ClassInitMeta objects for
+            the game class and game view class, respectively.
+        '''
         init_lines = self.__data_access.data_lines
-        game_meta = None
-        view_meta = None
+        game_initializers = []
         for line in init_lines:
-            game_meta, view_meta = json.loads(line, GameInitMeta.decode)
-        
-        print(game_meta, view_meta)
+            game_name = line.split('~')
+            initialization = game_name[1] # reusing the game_name variable
+            game_name = game_name[0]
+            game_data = dict(name=game_name)
+            game_data['class_meta'] = json.loads(initialization, 
+                                            object_hook=ClassInitMeta.decode)
+            game_initializers.append(game_data)
+    
+        return game_initializers
         
     
     def load_game(self, name: str) -> Dict:
-        '''Dynamically loads game class and instantiates an object of that class'''
+        ''' Instantiates objects of the game and game view classes
+            from the ClassInitMeta objects for each.
+            Returns a dictionary with key-value pairs game:Game 
+            instance and view:GameView instance.  These Game and 
+            GameView objects can be used by the ClientService to 
+            control and render the game.
+        '''
         
         try:
-            cached_game = self.__cached_games[name]
-            return {'game' : cached_game['game_class'](name), 
-                    'view' : cached_game['view_class'](time.time())}
-        except KeyError:
-            pass
+            game_meta = None
+            view_meta = None
+            for game in self.__game_init_list:
+                if game['name'] == name:
+                    game_meta = game['class_meta']['game']
+                    view_meta = game['class_meta']['view']
+                    break
+                    
+            game_obj = game_meta.instance()
+            view_obj = view_meta.instance()
+            
+            return dict(game=game_obj, view=view_obj)
         
-        for game in self.__games:
-            if game['name'] == name:
-                break
-            game = None
-        
-        try:
-            game_class = ClassLoader(game['game_path'], game['game_class'])
-            view_class = ClassLoader(game['view_path'], game['view_class'])
         except Exception as e:
             raise GameInvalidError(e) from e
-        
-        # try:
-        #     game_module = import_module(game['game_path'][:-3], '.')
-        #     view_module = import_module(game['view_path'][:-3], '.')
-        # except Exception as e:
-        #     raise GameInvalidError(e)
-        
-        # game_class = getattr(game_module, game['game_class'])
-        # view_class = getattr(view_module, game['view_class'])
-        
-        self.__cached_games[name] = {'game_class' : game_class,
-                                     'view_class' : view_class}
-        
-        return {'game' : game_class(name, game['game_kwargs']), 
-                'view' : view_class(str(time.time()), game['view_kwargs'])}
-    
-    def run_game(self, game_name: str) -> None:
-        game_objects = self.load_game(game_name)
-        game_objects['game'].play()
-
     
     def get_games(self) -> List[str]:
-        return [game for game in self.__games]
+        '''Returns a list of game names loaded into the engine'''
+        return list(self.__game_init_list)
     
 if __name__ == '__main__':
     from game_utilities import FileDataAccess
@@ -86,5 +82,6 @@ if __name__ == '__main__':
     fa.initialize()
     
     engine = GameEngine(fa)
+    engine.load_game('Quiz')
 
     

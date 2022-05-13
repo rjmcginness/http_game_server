@@ -18,7 +18,7 @@ import json
 from game_authentication import ServerClient
 from game_utilities import ClassLoader
 
-class GameInvalidError:
+class GameInvalidError(Exception):
     pass
 
 class GameResult:
@@ -242,7 +242,7 @@ class Game(ABC):
         '''
         ...
     
-class ClassInitMeta(json.JSONEncoder):
+class ClassInitMeta:
     def __init__(self, class_name: str,
                        module_name: str,
                        package_name: str = '.') -> None:
@@ -264,14 +264,12 @@ class ClassInitMeta(json.JSONEncoder):
     def init_params(self) -> Dict:
         return self.__kwargs
     
+    def instance(self) -> object:
+        return self.__class(**self.__kwargs)
+    
     def add_kwarg(self, key: str, value: str) -> None:
         self.__kwargs[key] = value
     
-    def default(self, obj: object) -> Dict:
-        if isinstance(obj, self.__class):
-            return self.encoding
-        
-        return json.JSONEncoder.default(self, obj)
     
     @property
     def encoding(self) -> Dict:
@@ -298,54 +296,63 @@ class ClassInitMeta(json.JSONEncoder):
         except (KeyError, ImportError):
             return obj
         
-class GameInitMeta(ClassInitMeta):
-    def __init__(self, specifier: str,
-                       class_name: str,
-                       module_name: str,
-                       package_name: str = '.') -> None:
-        super().__init__(class_name, module_name, package_name)
-        self.__specifier = specifier
+# class GameInitMeta(ClassInitMeta):
+#     def __init__(self, specifier: str,
+#                        class_name: str,
+#                        module_name: str,
+#                        package_name: str = '.') -> None:
+#         super().__init__(class_name, module_name, package_name)
+#         self.__specifier = specifier
     
-    @property
-    def encoding(self) -> Dict:
+#     @property
+#     def encoding(self) -> Dict:
         
-        return {self.__specifier:super().encoding}
+#         return {self.__specifier:super().encoding}
 
-    @classmethod
-    def decode(cls, obj: object) -> "GameInitMeta":
+#     @classmethod
+#     def decode(cls, obj: object) -> "GameInitMeta":
         
-        try:
-            specifier = obj['specifier']
-            class_name = obj['_meta']['cls']
-            module_name = obj['_meta']['module']
-            package_name = obj['_meta']['pkg']
-            meta = cls(specifier, class_name, module_name, package_name)
+#         try:
+#             specifier = obj['specifier']
+#             class_name = obj['_meta']['cls']
+#             module_name = obj['_meta']['module']
+#             package_name = obj['_meta']['pkg']
+#             meta = cls(specifier, class_name, module_name, package_name)
             
-            for kw, arg in obj['kwargs'].items():
-                if arg is not None and arg != '':
-                    meta.add_kwarg(kw, arg)
+#             for kw, arg in obj['kwargs'].items():
+#                 if arg is not None and arg != '':
+#                     meta.add_kwarg(kw, arg)
                 
-            return meta
-        except (KeyError, ImportError):
-            return obj
+#             return meta
+#         except (KeyError, ImportError):
+#             return obj
 
 
 
 
 if __name__ == '__main__':
-    from rjm_gaming.game_view import GameView
+    # from rjm_gaming.game_view import GameView
     import json
     
-    def initialize_games(self) -> List:
-        for line in open('../init/game_init.i'):
-            game_meta, view_meta = json.loads(line, GameInitMeta.decode)
-            print(game_meta, view_meta)
-       
-            
+    data_list = {}
+    
+    ini1 = ClassInitMeta('Quiz', 'quiz')
+    ini2 = ClassInitMeta('QuizView', 'quiz_view')
+    
+    data_list['game'] = ini1.encoding
+    data_list['view'] = ini2.encoding
+    
+    json_data = json.dumps(data_list)
+    print(json_data)
+    meta = json.loads(json_data, object_hook=ClassInitMeta.decode)
+    
+    print(meta['game'])
+    print(meta['view'])
+    
         
         
-    game_meta = ClassInitMeta('Game', 'rjm_gaming.game_base')
-    view_meta = ClassInitMeta('GameView', 'rjm_gaming.game_view')
-    meta = {'game':game_meta, 'view':view_meta}
-    json_meta = json.dumps(meta)
-    print(json.loads(json_meta, object_hook=GameInitMeta.decode))
+    # game_meta = ClassInitMeta('Game', 'rjm_gaming.game_base')
+    # view_meta = ClassInitMeta('GameView', 'rjm_gaming.game_view')
+    # meta = {'game':game_meta, 'view':view_meta}
+    # json_meta = json.dumps(meta)
+    # print(json.loads(json_meta, object_hook=GameInitMeta.decode))
