@@ -18,6 +18,10 @@ from quiz import QuizSubmission
 
 class QuizView(GameView):
     
+    ########################################################
+    ######???CONSIDER READING IN ALL FILES UP FRONT TO SAVE PROCESSING
+    ######TIME LATER
+    
     def introduction(self, **kwargs) -> str:
         """ Expects kwargs['session'] to be client id.
             Renders HTML start form
