@@ -51,7 +51,7 @@ class ServerClient:
 
 class Authenticator:
     def __init__(self, config: Config, **kwargs) -> None:
-        super().__init__()
+        # super().__init__()
         self.__request = kwargs['request']
         self.__config: Config = config
         self.__client: ServerClient = None

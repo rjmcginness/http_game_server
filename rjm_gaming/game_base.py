@@ -228,7 +228,7 @@ class Game(ABC):
             All GameResults are also maintained by the
             Game object.
         '''
-        result = self.next_result(**kwargs)
+        result = self._next_result(**kwargs)
         self.__results.append(result)
         
         return result

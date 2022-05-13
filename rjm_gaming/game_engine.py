@@ -26,7 +26,7 @@ class GameEngine:
     def __initialize_games(self) -> List:
         ''' Deserializes GameMeta data from the DataAccess connection
             Returns a list of dictionaries containing keys name and 
-            class_meta.  The value for name is teh name of the game.
+            class_meta.  The value for name is the name of the game.
             The value for class_meta is also a dictionary.  The keys 
             are game and view, which have ClassInitMeta objects for
             the game class and game view class, respectively.
@@ -66,6 +66,8 @@ class GameEngine:
             game_obj = game_meta.instance()
             view_obj = view_meta.instance()
             
+            print('IN GameEngine.load_game', game_obj.name)
+            
             return dict(game=game_obj, view=view_obj)
         
         except Exception as e:
@@ -73,7 +75,7 @@ class GameEngine:
     
     def get_games(self) -> List[str]:
         '''Returns a list of game names loaded into the engine'''
-        return list(self.__game_init_list)
+        return list(game['name'] for game in self.__game_init_list)
     
 if __name__ == '__main__':
     from game_utilities import FileDataAccess
