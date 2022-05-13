@@ -146,9 +146,11 @@ class GameClientService(ServerClientService):
             self._ServerClientService__client = authenticator.client
             print(f'User Authenticated:\n{self.client.name} ({self.client.client_id}) has entered')
             
-        # if here, there is an authenticated client
-        self.__send_main_menu(kwargs['request'])
         
+        # self.__send_main_menu(kwargs['request'])
+        
+        
+        # if here, there is an authenticated client
         command = self.__parse_input(kwargs['request_type']).lower()
         request = kwargs['request']
         
