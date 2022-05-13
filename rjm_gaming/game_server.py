@@ -134,34 +134,38 @@ class GameClientService(ServerClientService):
         ######TODO: MAKE MORE ROBUST BY ROUTING UNRECOGNIZED REQUESTS
         ######to safety
         
-        if self.client is None:
+        if self.client is None: # no authenticated client
             # run authenticator to authenticate client
             authenticator = Authenticator(self.config, **kwargs)
             
             if not authenticator.success:
                 print('AUTHENTICATION FAILED')
                 self.__client_id = None # Have to resend form
-                self._ServerClientService__client = authenticator.client
-                print(f'User Authenticated:\n{self.client.name} ({self.client.client_id}) has entered')
-                self.__send_main_menu(kwargs['request'])
                 return
             
-            command = self.__parse_input(kwargs['request_type']).lower()
-            request = kwargs['request']
-            # send main menu
-            if command is None or command == 'menu':
-                self.__send_main_menu(request)
-                return
+            self._ServerClientService__client = authenticator.client
+            print(f'User Authenticated:\n{self.client.name} ({self.client.client_id}) has entered')
             
-            # send games menu
-            if command == 'games':
-                self.__send_games_menu(request)
-                return
-            
-            # send admin menu
-            if command == 'admin':
-                self.__send_admin_menu(request)
-                return
+        # if here, there is an authenticated client
+        self.__send_main_menu(kwargs['request'])
+        
+        command = self.__parse_input(kwargs['request_type']).lower()
+        request = kwargs['request']
+        
+        # send main menu
+        if command is None or command == 'menu':
+            self.__send_main_menu(request)
+            return
+        
+        # send games menu
+        if command == 'games':
+            self.__send_games_menu(request)
+            return
+        
+        # send admin menu
+        if command == 'admin':
+            self.__send_admin_menu(request)
+            return
             
     
     def put(self, **kwargs) -> None:
