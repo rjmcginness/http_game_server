@@ -22,9 +22,11 @@ from config import Config
 from game_engine import GameEngine
 from game_utilities import DataAccess
 from game_utilities import FileDataAccess
+from game_base import Player
 
-# from functools import wraps
 
+class ServiceClosedError(RuntimeError):
+    pass
 
 class ServerClientService(Thread):
     def __init__(self, config: Config) -> None:
@@ -33,24 +35,30 @@ class ServerClientService(Thread):
         self.__client_id = None
         self.__client = None
         self.__requests = []
+        self.__exit = False
         
     def run(self):
         ''' If client_id is None, generate and id, embed in html, and
             send the authentication form to user
         '''
-        while True:
+        while not self.__exit:
             if not self.__requests:
                 continue
+            
             #######???POTENTIAL FOR THREAD LOCK OR RACING???
-            request = self.__requests.pop(0) # process next request
+            request = self.__requests.pop(0) # process next request (queue)
+            print('REQUEST', request)
             
             if self.__client_id is None:   # authentication form not sent yet
                 self.__client_id = request.session.client_id
-                self.__send_authentication((request))
+                self.__send_authentication(request)
                 continue
             
             # print("REQUEST:\n", request)
             self.__process_request(request)
+    
+    def stop(self) -> None: ######???MIGHT WANT TO USE EVENT FOR THIS????
+        self.__exit = True
     
     def __send_authentication(self, request: HTTPRequest) -> None:
         ''' Generates and sends the authentication page response to 
@@ -89,6 +97,9 @@ class ServerClientService(Thread):
     
     def push(self, request: Any) -> None:
         '''New request from this client'''
+        if self.__exit:
+            raise ServiceClosedError(f'Client has stopped: ID - {self.__client_id}')
+            
         if request is None:
             return
         
@@ -126,47 +137,74 @@ class GameClientService(ServerClientService):
     def __init__(self, config: Config, engine: GameEngine):
         super().__init__(config)
         self.__engine = engine
-        self.__player_id = ''#######FIX This 
+        self.__game = dict(game=None, view=None)
         self.start()
     
     def get(self, **kwargs) -> None:
-        
+        ''' Process GET request to GameServer'''
         ######TODO: MAKE MORE ROBUST BY ROUTING UNRECOGNIZED REQUESTS
         ######to safety
+        request_type = kwargs['request_type']
+        action = self.__parse_path(request_type)
         
-        if self.client is None: # no authenticated client
-            # run authenticator to authenticate client
-            authenticator = Authenticator(self.config, **kwargs)
+        
+        if action == '/' or action == '/auth':
+            if self.client is None: # no authenticated client
+                # run authenticator to authenticate client
+                authenticator = Authenticator(self.config, **kwargs)
+                
+                if not authenticator.success:
+                    print('AUTHENTICATION FAILED')
+                    self.__client_id = None # Have to resend form
+                    return
             
-            if not authenticator.success:
-                print('AUTHENTICATION FAILED')
-                self.__client_id = None # Have to resend form
+                self._ServerClientService__client = authenticator.client
+                print(f'User Authenticated:\n{self.client.name} ({self.client.client_id}) has entered')
                 return
-            
-            self._ServerClientService__client = authenticator.client
-            print(f'User Authenticated:\n{self.client.name} ({self.client.client_id}) has entered')
-            
-        
-        # self.__send_main_menu(kwargs['request'])
-        
+            else: 
+                action = '/menu' # go to main menu
         
         # if here, there is an authenticated client
-        command = self.__parse_input(kwargs['request_type']).lower()
+        
         request = kwargs['request']
         
         # send main menu
-        if command is None or command == 'menu':
+        if action == '/menu':
             self.__send_main_menu(request)
+            
             return
         
         # send games menu
-        if command == 'games':
+        if action == '/games':
             self.__send_games_menu(request)
             return
         
+        # loads and sends start page for game
+        if action == '/game':
+            game_name = self.__parse_input(request_type).lower() ######???DO I NEED LOWER CASE???
+            self.__game = self.__engine.load_game(game_name)
+            self.__game['game'].add_player(Player(self.client.name, self.__client_id()))
+            request.connect.render(self.__game['view'].introduction())
+            return
+        
+        if self.__game['game'] is not None and action == '/game/' + self.__game['game'].name:
+            kwargs = self.__game['view'].get_play(request)
+            result = self.__game['game'].play_next(**kwargs)
+            response = dict(session=HTTPSession(self.__client_id), result=result)
+            
+            self.__game['view'].render(**response)
+            return
+        
         # send admin menu
-        if command == 'admin':
+        if action == '/admin':
             self.__send_admin_menu(request)
+            return
+        
+        # exit and close this service
+        if action == '/exit': # kill the client
+            self._ServerClientService__client = None
+            self.__client_id = None
+            self.stop()
             return
             
     
@@ -190,8 +228,15 @@ class GameClientService(ServerClientService):
         
         return html
     
+    def __parse_path(self, request_type: str) -> str:
+        action = request_type.split(' ')[1].strip() # second section of request type line
+        end_idx = action.rfind('?')
+        action = action[:end_idx]
+        
+        return action
+    
     def __prep_output_file(self, output_file: str, request: HTTPRequest) -> str:
-        '''Embeds session (client_id)'''
+        '''Embeds session (client_id) in output, if there is a session'''
         ######TODO: Consider checking whether this is a form, if not, add
         ######cookie with client id (session) to response header
         if not request.session:
@@ -255,7 +300,7 @@ class GameClientService(ServerClientService):
         
     
     def __build_game_html(self, game_name: str) -> str:
-        game_link = '<form action="/games" method="get">'
+        game_link = '<form action="/game" method="get">'
         game_link += f'<input type="submit" value="{game_name}" name="game" />'
         game_link += '</form>'
         
@@ -274,7 +319,7 @@ class GameServer:######Consider implementing as ContextManager
                        data_access: DataAccess = \
                        FileDataAccess('../init/game_init.i', raw=False)) -> None:
         
-        self.__server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.__server = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # create server
         self.__clients = {}
         self.__engine = GameEngine(data_access)
         self.__server.bind((address, port))
@@ -285,9 +330,9 @@ class GameServer:######Consider implementing as ContextManager
         with self.__server as server:
             try:
                 while True:
-                    connection, address = server.accept()
+                    connection, address = server.accept() # receive new socket connection
                     print("New Connection:", connection)
-                    RequestRouter(connection, self)
+                    RequestRouter(connection, self) # route connection to client
                     ######UPGRADE: Time frequency of accepts, spawn new server (load balancing)
             except (ConnectionAbortedError,
                     KeyboardInterrupt,
@@ -297,6 +342,8 @@ class GameServer:######Consider implementing as ContextManager
                 raise
             
     def shutdown(self):
+        for client in self.__clients.values():
+            client.stop()
         self.__server.close()
         
     @property
@@ -307,8 +354,7 @@ class GameServer:######Consider implementing as ContextManager
         ''' Create a new Game service and push this request
             to it.
         '''
-        ######CREATE SERVICE: No Engine for testing
-        service = GameClientService(Config(), None) # could gave session as constructor argument 
+        service = GameClientService(Config(), self.__engine)
         self.__clients[request.session.client_id] = service
         print('New Game Client Service created')
         service.push(request)
@@ -321,63 +367,121 @@ class RequestRouter(Thread):
         self.__server = server
         self.start()
     
-    def run(self):
+    def run(self): # implement this as thread task.  Called after Thread.start
+        ''' Create HTTPRequest object with the socket connection, which
+            reads the HTTP request from the client.  Calls method to route
+            this request to the correct client, based on client id (session).
+        '''
         request = HTTPRequest(self.__connection)
+        print('IN REQUESTROUTER', request)
         
         if not request.session: # no session, so make a new one
             request.session = HTTPSession(request.name + str(time.time()))
+            print(request.session)
         self.route_request(request)
     
     def route_request(self, request: HTTPRequest) -> None:
+        ''' Routes the HTTPRequest to proper client or has
+            the server create an new client and routes the
+            request to it.
+        '''
         try:
             client_id = request.session.client_id
             self.__server.clients[client_id].push(request)
+        except ServiceClosedError as e:
+            print(e)
+            del self.__server_clients[client_id]
         except KeyError:
             # KeyError: client not found
             # AttribiteError: session should never be None
             self.__server.create_client(request)######MAY HAVE TO LOCK ON THIS
     
 
-def close_server():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
-        server.bind(('localhost', 6500))
-        print("Closing server")
-        server.close()
-        print("Closed")
-        from sys import exit
-        exit()
+
 
 if __name__ == '__main__':
-    # close_server()
-    
     from sys import exit
-    server = None
+    
+    def close_server():
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+            server.bind(('localhost', 6500))
+            print("Closing server")
+            server.close()
+            print("Closed")
+            from sys import exit
+            exit()
+            
+    close_server()
+    
+    # from game_utilities import FileDataAccess
+    
+    # fa = FileDataAccess('../init/game_init.i', raw=False)
+    # fa.initialize()
+    
+    # engine = GameEngine(fa)
+    # engine.load_game('Quiz')
+    
+    # service = GameClientService(Config(), engine)
+    
+    
+    
+    # service.stop()
+    
+    # server = None
+    # try:
+    #     server = GameServer()
+    #     print("ctrl+c to exit")
+    #     server.start()
+    # except (ConnectionAbortedError, KeyboardInterrupt) as e:
+    #     print(e)
+    #     server.shutdown()
+    #     print('Closing server...')
+    #     exit()
+    
+    # from game_utilities import FileDataAccess
+    
+    # fa = FileDataAccess('../init/game_init.i', raw=False)
+    # fa.initialize()
+    
+    # engine = GameEngine(fa)
+    # engine.load_game('Quiz')
     try:
+        print('Starting server...')
         server = GameServer()
-        print("ctrl+c to exit")
         server.start()
-    except (ConnectionAbortedError, KeyboardInterrupt) as e:
+    except Exception as e:
         print(e)
-        server.shutdown()
-        print('Closing server...')
         exit()
+    finally:
+        server.shutdown()
         
-        
-    # with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
-    #     server.bind(('localhost', 6500))
-    #     server.listen(1)
-    #     print("Server started")
-    #     connection, address = server.accept()
-    #     request = HTTPRequest(connection)
-    #     # print(connection.recv(2048))
-    #     # print(connection)
-        
-    #     client = GameClientService(Config(), None)
-    #     client.push(request)
-        
-    #     # auth = Authenticator(comms, Config())
-    #     # if auth.success:
-    #     #     print(auth.client)
+    
+    
+    # try:
+    #     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+    #         try:
+    #             server.bind(('localhost', 6500))
+    #             server.listen(5)
+    #             print("Server started @6500")
+    #             connection, address = server.accept()
+    #             request = HTTPRequest(connection)
+    #             request.session = HTTPSession(request.name + str(time.time()))
+    #             # print(connection.recv(2048))
+    #             # print(connection)
+                
+    #             client = GameClientService(Config(), engine)
+    #             client.push(request)
+                
+    #             connection, address = server.accept()
+    #             request = HTTPRequest(connection)
+    #             client.push(request)
+                
+    #             # auth = Authenticator(comms, Config())
+    #             # if auth.success:
+    #             #     print(auth.client)
+    #         finally:
+    #             server.close()
+    # finally:
     #     server.close()
     
     

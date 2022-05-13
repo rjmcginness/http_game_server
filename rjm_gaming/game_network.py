@@ -134,6 +134,7 @@ class HTTPCommsModule:
         self.__max_connections = max_clients
     
     def write(self, data: Any) -> Any:
+        print('WRITE', self.__connection.getpeername())
         try:
             if not isinstance(data, bytes):
                 data = bytes(data.encode('utf-8'))
@@ -150,6 +151,7 @@ class HTTPCommsModule:
     
     def read(self) -> Any:
         try:
+            print('READ', self.__connection.getpeername())
             return self.__connection.recv(2048).decode() # DOES SIZE MATTER???
         except (KeyboardInterrupt, SystemExit):
             raise
