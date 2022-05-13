@@ -5,13 +5,11 @@ Created on Wed May 11 12:00:52 2022
 @author: Robert J McGinness
 """
 
-from typing import Any
 from typing import Dict
 from typing import List
 
 from rjm_gaming.game_view import GameView
 from rjm_gaming.game_base import GameResult
-from rjm_gaming.game_network import HTTPRequest
 from quiz import QuizSubmission
 
 
@@ -23,12 +21,17 @@ class QuizView(GameView):
     ######TIME LATER
     
     def introduction(self, **kwargs) -> str:
-        """ Expects kwargs['session'] to be client id.
+        """ Expects kwargs['request'].session to be client id.
             Renders HTML start form
         """
-        start_html = self.render_file('../static/game/quiz_start.html')
         
-        session = kwargs['session']
+        start_html = self.render_file('../static/game/quiz/quiz_start.html')
+        
+        start_html = start_html.replace('%QUIZ%', 'Quiz')
+        start_html = start_html.replace('%NAME%', kwargs['player'].name)
+        
+        
+        session = kwargs['request'].session
         
         return session.form_insert(start_html)
     
@@ -37,7 +40,7 @@ class QuizView(GameView):
             and kwargs['questions'] to contain all of the 
             QuizSubmission objects at submission
         """
-        results_html = self.render_file('../static/game/' +\
+        results_html = self.render_file('../static/game/quiz/' +\
                                              'quiz_results.html')
         
         game_result = kwargs['game_result']
@@ -78,13 +81,11 @@ class QuizView(GameView):
         return questions
 
     def render(self, **kwargs) -> str:
-        """ Expects kwargs['session'] to contain client id
+        """ Expects kwargs['request'].session to contain client 
+            id. 
             Renders HTML of each GameResult or the final
             results when game over
         """
-        
-        # # print("KWARGS:", kwargs)
-        # print("KWARGS:", kwargs['game_result'].result_data)
         if kwargs['game_result'].game_over:
             return self.game_over(**kwargs)
         
@@ -107,7 +108,7 @@ class QuizView(GameView):
         game_html = self.render_file(file_name) # defined in superclass
         
         game_html = game_html.replace('%QUIZ%', result.game_name)
-        game_html = game_html.replace('%NAME%', result.players[0].name)
+        game_html = game_html.replace('%NAME%', result.players[0].name) ###### PROBLEM HERE saying players[0] is a string
         
         result_data = result.result_data
         question = result_data['question']

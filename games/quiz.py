@@ -197,13 +197,17 @@ class Quiz(Game):
             self.__current_submission.answer = Answer(answer)
             self.__current_submission = self.__prev_submission()
             
+        answer_value = None
+        if self.__current_submission and self.__current_submission.answer:
+            answer_value = self.__current_submission.answer.value
+            
         return GameResult(self.players,
                           game_name='Quiz',
                           result_id=len(self.results) + 1,
                           game_over=game_over,
                           question_num=self.__current_submission.question.q_id,
                           question=self.__current_submission.question,
-                          answer=self.__current_submission.answer.value,
+                          answer=answer_value,
                           prev_question=self.__prev_submission(),
                           next_question=self.__next_submission(),
                           **results)
