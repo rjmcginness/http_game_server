@@ -120,8 +120,8 @@ class QuizSubmission:
     
             
 class Quiz(Game):
-    def __init__(self, name: str, player: Player, quiz_file: str) -> None:
-        super().__init__(name, [player])
+    def __init__(self, name: str, quiz_file: str) -> None:
+        super().__init__(name)
         self.__quiz_file = quiz_file
         self.__questions = []
         self.__load_quiz()
@@ -146,7 +146,7 @@ class Quiz(Game):
         submissions = []
         for i, question in enumerate(sample(self.__questions, 
                                             len(self.__questions))):
-            question.q_id = i  
+            question.q_id = i + 1
             submissions.append(QuizSubmission(question, None))
             
         return submissions
@@ -155,12 +155,15 @@ class Quiz(Game):
         
         command = kwargs['input'].lower()
         
+        
+        
         # process start of new quiz
         if command == 'start':
+            print("START!!!!!")
             return GameResult(self.players,
                               game_name='Quiz',
                               result_id=1, 
-                              question=self.__current_question.question,
+                              question=self.__current_submission.question,
                               prev_question=None,
                               next_question=self.__next_submission())
         
@@ -242,8 +245,8 @@ if __name__ == '__main__':
     
     q = Question("Where do sharks live?",
                  'ocean',
-                 ['desert', 'lake', 'ocean', 'maountain'],
                  str(time.time()),
+                 ['desert', 'lake', 'ocean', 'maountain'],
                  'multiple choice')
     
     json_data = json.dumps(q.encoding)

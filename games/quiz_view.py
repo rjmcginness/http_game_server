@@ -43,6 +43,7 @@ class QuizView(GameView):
         results_html = self.render_file('../static/game/quiz/' +\
                                              'quiz_results.html')
         
+        
         game_result = kwargs['game_result']
         print(game_result)
         results = game_result.result_data
@@ -108,7 +109,7 @@ class QuizView(GameView):
         game_html = self.render_file(file_name) # defined in superclass
         
         game_html = game_html.replace('%QUIZ%', result.game_name)
-        game_html = game_html.replace('%NAME%', result.players[0].name) ###### PROBLEM HERE saying players[0] is a string
+        game_html = game_html.replace('%NAME%', result.players[0].name)
         
         result_data = result.result_data
         question = result_data['question']
@@ -169,26 +170,26 @@ class QuizView(GameView):
         request = request.split(' ')[1]#get the middle with query
         play = {'input': None}
         try:
-            input_idx = request.index('input=')
-            play['input'] = request[input_idx + len('input='):]
-            answer = self.__parse_answer(request.split('?')[1])
-            play['answer'] = answer
+            input_idx = request.index('?')
+            query = request[input_idx:]
+            play['input'] = self.__parse_query(query, 'input=')
+            play['answer'] = self.__parse_query(query, 'answer=')
         except IndexError:
             play['input'] = 'start'
         
         return play
     
-    def __parse_answer(self, query_line: str) -> str:
-        answer = ''
+    def __parse_query(self, query_line: str, target: str) -> str:
+        value = ''
         try:
-            answer_sections = query_line.split('&')
-            for section in answer_sections:
-                if 'answer=' in section:
-                    answer = section.split('=')[1]
+            query_sections = query_line.split('&')
+            for section in query_sections:
+                if target in section:
+                    value = section.split('=')[1]
         except IndexError:
             return None
         
-        return answer
+        return value
 
 if __name__ == '__main__':
     import time
