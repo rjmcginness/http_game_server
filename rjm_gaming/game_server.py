@@ -47,7 +47,6 @@ class ServerClientService(Thread):
             
             #######???POTENTIAL FOR THREAD LOCK OR RACING???
             request = self.__requests.pop(0) # process next request (queue)
-            print('REQUEST', request)
             
             if self.__client_id is None:   # authentication form not sent yet
                 self.__client_id = request.session.client_id
@@ -58,6 +57,8 @@ class ServerClientService(Thread):
             self.__process_request(request)
     
     def stop(self) -> None: ######???MIGHT WANT TO USE EVENT FOR THIS????
+        for request in self.__requests:
+            request.connection.close() 
         self.__exit = True
     
     def __send_authentication(self, request: HTTPRequest) -> None:
@@ -66,6 +67,8 @@ class ServerClientService(Thread):
         '''
         header = HTTPHeader()
         header.content_type = 'text/html; charset=utf-8' # sending html
+        header.connection = 'keep-alive'
+        header.cache_control = 'no-cache'
         
         client_id = request.session.client_id
         session = HTTPSession(client_id) # new session with client_id
@@ -110,6 +113,10 @@ class ServerClientService(Thread):
         return self.__client
     
     @property
+    def client_id(self) -> str:
+        return self.__client_id
+    
+    @property
     def config(self) -> Config:
         return self.__config
     
@@ -146,21 +153,12 @@ class GameClientService(ServerClientService):
         ######to safety
         request_type = kwargs['request_type']
         action = self.__parse_path(request_type)
+        print(request_type)
         
-        
+        # authenticate or send main menu page
         if action == '/' or action == '/auth':
             if self.client is None: # no authenticated client
-                # run authenticator to authenticate client
-                authenticator = Authenticator(self.config, **kwargs)
-                
-                if not authenticator.success:
-                    print('AUTHENTICATION FAILED')
-                    self.__client_id = None # Have to resend form
-                    return
-            
-                self._ServerClientService__client = authenticator.client
-                print(f'User Authenticated:\n{self.client.name} ({self.client.client_id}) has entered')
-                return
+                self.__authenticate(**kwargs)
             else: 
                 action = '/menu' # go to main menu
         
@@ -168,8 +166,14 @@ class GameClientService(ServerClientService):
         
         request = kwargs['request']
         
+        if '/favicon.ico' in action:
+            print("IN /favicon")
+            self.__kill_favicon(request)
+            return
+        
         # send main menu
         if action == '/menu':
+            # self.__kill_favicon(request)
             self.__send_main_menu(request)
             
             return
@@ -181,18 +185,38 @@ class GameClientService(ServerClientService):
         
         # loads and sends start page for game
         if action == '/game':
-            game_name = self.__parse_input(request_type).lower() ######???DO I NEED LOWER CASE???
+            game_name = self.__parse_query(request_type, 'game=')
+            print(f'Starting {game_name}')
             self.__game = self.__engine.load_game(game_name)
-            self.__game['game'].add_player(Player(self.client.name, self.__client_id()))
-            request.connect.render(self.__game['view'].introduction())
+            self._ServerClientService__client = Player(self.client.name, self.client_id)
+            self.__game['game'].add_player(self.client)
+            kwargs['player'] = self.client
+            header = HTTPHeader()
+            header.content_type = 'text/html; charset=utf-8'
+            # header.connection = 'keep-alive'
+            header.cache_control = 'no-cache'
+            
+            output = self.__game['view'].introduction(**kwargs)
+            header.content_length = len(output)
+            
+            request.connection.render(output, header=header)
             return
         
-        if self.__game['game'] is not None and action == '/game/' + self.__game['game'].name:
-            kwargs = self.__game['view'].get_play(request)
+        # send a game page
+        if self.__game['game'] is not None and action == '/game/' + self.__game['game'].name.lower():
+            kwargs = self.__game['view'].get_play(request.request_type)
             result = self.__game['game'].play_next(**kwargs)
-            response = dict(session=HTTPSession(self.__client_id), result=result)
+            kwargs = dict(session=HTTPSession(self.client_id),
+                            game_result=result)
             
-            self.__game['view'].render(**response)
+            reponse = self.__game['view'].render(**kwargs)
+            
+            header = HTTPHeader()
+            header.content_type = 'text/html; charset=utf-8'
+            header.cache_control = 'no-cache'
+            header.content_length = len(reponse)
+            
+            request.connection.render(reponse, header=header)
             return
         
         # send admin menu
@@ -204,7 +228,8 @@ class GameClientService(ServerClientService):
         if action == '/exit': # kill the client
             self._ServerClientService__client = None
             self.__client_id = None
-            self.stop()
+            # # self.stop()
+            # self.__authenticate(**kwargs)
             return
             
     
@@ -223,10 +248,29 @@ class GameClientService(ServerClientService):
     def __read_output_file(self, file_name: str) -> str:
         '''SIMPLY READS IN WHOLE FILE AND RETURNS AS STRING'''
         html = ''
-        with open(self.config.MENU_FILE, 'rt') as menu_file:
+        with open(file_name, 'rt') as menu_file:
             html = menu_file.read()
         
         return html
+    
+    def __authenticate(self, **kwargs) -> None:
+        # run authenticator to authenticate client
+        authenticator = Authenticator(self.config, **kwargs)
+        
+        if not authenticator.success:
+            print('AUTHENTICATION FAILED')
+            self.__client_id = None # Have to resend form
+            return
+    
+        self._ServerClientService__client = authenticator.client
+        print(f'User Authenticated:\n{self.client.name} ({self.client.client_id}) has entered')
+        # self.__kill_favicon(kwargs['request'])
+    
+    def __kill_favicon(self, request:HTTPRequest) -> None:
+        # favicon should not exist
+        print('Kill favicon')
+        request.connection.render('', status_code=404)
+        
     
     def __parse_path(self, request_type: str) -> str:
         action = request_type.split(' ')[1].strip() # second section of request type line
@@ -251,6 +295,8 @@ class GameClientService(ServerClientService):
         header = HTTPHeader()
         # header.set_cookie = f'cookie1={request.session}'
         header.content_type = 'text/html; charset=utf-8'
+        header.connection = 'keep-alive'
+        # header.cache_control = 'no-cache' ######DO I NEED THIS????
         
         # load main menu and prepare with session, if present
         main_menu = self.__read_output_file(self.config.MENU_FILE)
@@ -260,7 +306,7 @@ class GameClientService(ServerClientService):
         
         request.connection.render(main_menu, header=header)
     
-    def __parse_input(self, request_type: str) -> str:
+    def __parse_query(self, request_type: str, name: str) -> str:
         ''' Get the input value from request.
             Returns the value as a string, if present.
             Otherwise, returns None.
@@ -270,9 +316,10 @@ class GameClientService(ServerClientService):
         
         input_value = None
         for section in sections:
-            if 'input=' in section:
-                idx = section.index('input=')
-                input_value = section[idx + len('input=')]
+            if name in section:
+                idx = section.index(name)
+                input_value = section[idx + len(name):]
+                break
         
         return input_value
     
@@ -281,7 +328,7 @@ class GameClientService(ServerClientService):
         header = HTTPHeader()
         header.content_type = 'text/html; charset=utf-8'
         
-        games_menu = self.__read_output_file(self.config.MENU)
+        games_menu = self.__read_output_file(self.config.GAME_MENU)
         
         game_names = self.__engine.get_games()
         
@@ -300,7 +347,7 @@ class GameClientService(ServerClientService):
         
     
     def __build_game_html(self, game_name: str) -> str:
-        game_link = '<form action="/game" method="get">'
+        game_link = f'<form action="/game" method="get">'
         game_link += f'<input type="submit" value="{game_name}" name="game" />'
         game_link += '</form>'
         
@@ -313,7 +360,7 @@ class GameClientService(ServerClientService):
         
     
 
-class GameServer:######Consider implementing as ContextManager
+class GameServer:######This Should be a thread, so that it can be shutdown
     def __init__(self, address: str = 'localhost',
                        port: int = 6500,
                        data_access: DataAccess = \
@@ -324,7 +371,7 @@ class GameServer:######Consider implementing as ContextManager
         self.__engine = GameEngine(data_access)
         self.__server.bind((address, port))
         self.__server.listen(5)
-        print(f'Starting server on {port}...')
+        print(f'Server started on {port}')
         
     def start(self) -> None:
         with self.__server as server:
@@ -356,7 +403,6 @@ class GameServer:######Consider implementing as ContextManager
         '''
         service = GameClientService(Config(), self.__engine)
         self.__clients[request.session.client_id] = service
-        print('New Game Client Service created')
         service.push(request)
 
 
@@ -373,11 +419,9 @@ class RequestRouter(Thread):
             this request to the correct client, based on client id (session).
         '''
         request = HTTPRequest(self.__connection)
-        print('IN REQUESTROUTER', request)
         
         if not request.session: # no session, so make a new one
             request.session = HTTPSession(request.name + str(time.time()))
-            print(request.session)
         self.route_request(request)
     
     def route_request(self, request: HTTPRequest) -> None:
@@ -390,28 +434,29 @@ class RequestRouter(Thread):
             self.__server.clients[client_id].push(request)
         except ServiceClosedError as e:
             print(e)
-            del self.__server_clients[client_id]
+            del self.__server.clients[client_id]
         except KeyError:
             # KeyError: client not found
             # AttribiteError: session should never be None
             self.__server.create_client(request)######MAY HAVE TO LOCK ON THIS
     
-
+    
+def close_server():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+        server.bind(('localhost', 6500))
+        print("Closing server")
+        server.close()
+        print("Closed")
+        from sys import exit
+        exit()
 
 
 if __name__ == '__main__':
-    from sys import exit
     
-    def close_server():
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
-            server.bind(('localhost', 6500))
-            print("Closing server")
-            server.close()
-            print("Closed")
-            from sys import exit
-            exit()
+    
+    
             
-    close_server()
+    # close_server()
     
     # from game_utilities import FileDataAccess
     
@@ -451,6 +496,7 @@ if __name__ == '__main__':
         server.start()
     except Exception as e:
         print(e)
+        server.shutdown()
         exit()
     finally:
         server.shutdown()
@@ -483,8 +529,24 @@ if __name__ == '__main__':
     #             server.close()
     # finally:
     #     server.close()
-    
-    
+
+'''
+Exception in thread Thread-115:
+Traceback (most recent call last):
+  File "/opt/anaconda3/lib/python3.9/threading.py", line 973, in _bootstrap_inner
+    self.run()
+  File "/Users/robertjmcginness/src/pyth/rjm_games_2_0/rjm_gaming/game_server.py", line 57, in run
+    self.__process_request(request)
+  File "/Users/robertjmcginness/src/pyth/rjm_games_2_0/rjm_gaming/game_server.py", line 91, in __process_request
+    self.get(**kwargs)
+  File "/Users/robertjmcginness/src/pyth/rjm_games_2_0/rjm_gaming/game_server.py", line 208, in get
+    result = self.__game['game'].play_next(**kwargs)
+  File "/Users/robertjmcginness/src/pyth/rjm_games_2_0/rjm_gaming/game_base.py", line 226, in play_next
+    result = self._next_result(**kwargs)
+  File "/Users/robertjmcginness/src/pyth/rjm_games_2_0/games/quiz.py", line 211, in _next_result
+    question_num=self.__current_submission.question.q_id,
+AttributeError: 'NoneType' object has no attribute 'question'
+'''
         
         
         
@@ -502,4 +564,22 @@ Sec-Fetch-Dest: document
 Sec-Fetch-Mode: navigate
 Sec-Fetch-Site: none
 Sec-Fetch-User: ?1'''
+
+'''
+HTTPCommsModule.READ ('127.0.0.1', 57570)
+REQUEST GET /favicon.ico HTTP/1.1
+Host: localhost:6500
+Connection: keep-alive
+sec-ch-ua: " Not A;Brand";v="99", "Chromium";v="101", "Google Chrome";v="101"
+sec-ch-ua-mobile: ?0
+User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.54 Safari/537.36
+sec-ch-ua-platform: "Windows"
+Accept: image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: no-cors
+Sec-Fetch-Dest: image
+Referer: http://localhost:6500/games?input=Games&identifier=575201652452595.659528
+Accept-Language: en-US,en;q=0.9,is;q=0.8,de;q=0.7,da;q=0.6
+Accept-Encoding: gzip, deflate
+'''
    

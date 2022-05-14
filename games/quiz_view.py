@@ -5,13 +5,11 @@ Created on Wed May 11 12:00:52 2022
 @author: Robert J McGinness
 """
 
-from typing import Any
 from typing import Dict
 from typing import List
 
 from rjm_gaming.game_view import GameView
 from rjm_gaming.game_base import GameResult
-from rjm_gaming.game_network import HTTPRequest
 from quiz import QuizSubmission
 
 
@@ -23,12 +21,17 @@ class QuizView(GameView):
     ######TIME LATER
     
     def introduction(self, **kwargs) -> str:
-        """ Expects kwargs['session'] to be client id.
+        """ Expects kwargs['request'].session to be client id.
             Renders HTML start form
         """
-        start_html = self.render_file('../static/game/quiz_start.html')
         
-        session = kwargs['session']
+        start_html = self.render_file('../static/game/quiz/quiz_start.html')
+        
+        start_html = start_html.replace('%QUIZ%', 'Quiz')
+        start_html = start_html.replace('%NAME%', kwargs['player'].name)
+        
+        
+        session = kwargs['request'].session
         
         return session.form_insert(start_html)
     
@@ -37,8 +40,9 @@ class QuizView(GameView):
             and kwargs['questions'] to contain all of the 
             QuizSubmission objects at submission
         """
-        results_html = self.render_file('../static/game/' +\
+        results_html = self.render_file('../static/game/quiz/' +\
                                              'quiz_results.html')
+        
         
         game_result = kwargs['game_result']
         print(game_result)
@@ -78,13 +82,11 @@ class QuizView(GameView):
         return questions
 
     def render(self, **kwargs) -> str:
-        """ Expects kwargs['session'] to contain client id
+        """ Expects kwargs['request'].session to contain client 
+            id. 
             Renders HTML of each GameResult or the final
             results when game over
         """
-        
-        # # print("KWARGS:", kwargs)
-        # print("KWARGS:", kwargs['game_result'].result_data)
         if kwargs['game_result'].game_over:
             return self.game_over(**kwargs)
         
@@ -168,26 +170,26 @@ class QuizView(GameView):
         request = request.split(' ')[1]#get the middle with query
         play = {'input': None}
         try:
-            input_idx = request.index('input=')
-            play['input'] = request[input_idx + len('input='):]
-            answer = self.__parse_answer(request.split('?')[1])
-            play['answer'] = answer
+            input_idx = request.index('?')
+            query = request[input_idx:]
+            play['input'] = self.__parse_query(query, 'input=')
+            play['answer'] = self.__parse_query(query, 'answer=')
         except IndexError:
             play['input'] = 'start'
         
         return play
     
-    def __parse_answer(self, query_line: str) -> str:
-        answer = ''
+    def __parse_query(self, query_line: str, target: str) -> str:
+        value = ''
         try:
-            answer_sections = query_line.split('&')
-            for section in answer_sections:
-                if 'answer=' in section:
-                    answer = section.split('=')[1]
+            query_sections = query_line.split('&')
+            for section in query_sections:
+                if target in section:
+                    value = section.split('=')[1]
         except IndexError:
             return None
         
-        return answer
+        return value
 
 if __name__ == '__main__':
     import time

@@ -31,6 +31,7 @@ class HTTPHeader:
         self.__accept_char: str = ''
         self.__accept_enc: str = ''
         self.__accept_lang: str = ''
+        self.__cache_control: str = ''
         self.__connection: str = ''
         self.__content_len: str = ''
         self.__content_type: str = ''
@@ -69,6 +70,14 @@ class HTTPHeader:
     @accept_language.setter
     def accept_language(self, data: str) -> None:
         self.__accept_lang = f'Accept-Language: {data}\n'
+    
+    @property
+    def cache_control(self) -> str:
+        return self.__cache_control
+    
+    @cache_control.setter
+    def cache_control(self, data: str) -> None:
+        self.__cache_control = f'Cache-Control: {data}\n'
     
     @property
     def connection(self) -> str:
@@ -121,6 +130,7 @@ class HTTPHeader:
     def __repr__(self) -> str:
         return (self.host + self.accept + self.accept_charset  +\
                 self.accept_encoding + self.accept_language +\
+                self.cache_control +\
                 self.connection + self.set_cookie + self.content_type + \
                 self.content_length + self.cookie + '\r\n')
 
@@ -134,7 +144,7 @@ class HTTPCommsModule:
         self.__max_connections = max_clients
     
     def write(self, data: Any) -> Any:
-        print('WRITE', self.__connection.getpeername())
+        # print('HTTPCommsModule.WRITE', self.__connection.getpeername())
         try:
             if not isinstance(data, bytes):
                 data = bytes(data.encode('utf-8'))
@@ -143,7 +153,8 @@ class HTTPCommsModule:
             data_sent = 0
             while data_sent < len(data):
                 data_sent += self.__connection.send(data)
-                
+            
+            # self.__connection.close() ######THIS IS NEW
         except (KeyboardInterrupt, SystemExit):
             raise
         except Exception as e:
@@ -151,7 +162,14 @@ class HTTPCommsModule:
     
     def read(self) -> Any:
         try:
-            print('READ', self.__connection.getpeername())
+            # print('HTTPCommsModule.READ', self.__connection.getpeername())
+            # buffer = ''
+            # data = self.__connection.recv(2048)
+            # while data:
+            #     print('READ', data)
+            #     buffer += data.decode()
+            #     data = self.__connection.recv(2048)
+            # return buffer
             return self.__connection.recv(2048).decode() # DOES SIZE MATTER???
         except (KeyboardInterrupt, SystemExit):
             raise
@@ -235,7 +253,7 @@ class HTTPRequest:
             
             #look for index of end of header
             for idx in range(len(request_lines)):
-                if '\n\r\n' in request_lines[idx]:
+                if '\n\r\n' in request_lines[idx]: ####### SHOULD THIS BE \r\n\r\n???
                     break
             idx += 1
             header = request_lines[1:idx]

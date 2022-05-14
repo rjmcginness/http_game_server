@@ -17,18 +17,13 @@ from game_network import HTTPRequest
 
 
 class GameView(ABC):
-    def __init__(self, view_id: str,
-                       html_file: Optional[str] = None,
+    def __init__(self, html_file: Optional[str] = None,
                        css_files: Optional[List[str]] = None,
                        scripts: Optional[List[str]] = None) -> None:
-        self.__id = view_id
+        
         self.__html_file = html_file
         self.__css_files = css_files
         self.__scripts = scripts
-    
-    @property
-    def view_id(self) -> str:
-        return self.__view_id
     
     @property
     def html_file(self) -> Optional[str]:
