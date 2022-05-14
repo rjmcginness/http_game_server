@@ -30,7 +30,6 @@ class GameResult:
                         **kwargs) -> None:
         
         self.__players = players
-        # self.__session = session
         self.__game_name = game_name
         self.__id = result_id
         self.__game_over = game_over
@@ -40,10 +39,6 @@ class GameResult:
     @property 
     def players(self) -> Tuple:
         return self.__players
-    
-    # @property
-    # def session(self) -> str:
-    #     return self.__session
     
     @property
     def game_name(self) -> str:
@@ -105,7 +100,7 @@ class Player(ServerClient):
                  score: float = 0.0,
                  iswinner: bool = False) -> None:
         
-        super().__init__(name, client_id)
+        super().__init__(name, client_id, authenticated=True) # can't become a player unless you are authenticated
         self.__experience = experience
         self.__score = score
         self.__iswinner = iswinner
@@ -270,6 +265,9 @@ class ClassInitMeta:
     def add_kwarg(self, key: str, value: str) -> None:
         self.__kwargs[key] = value
     
+    def clear_kwargs(self) -> None:
+        self.__kwargs.clear()
+    
     
     @property
     def encoding(self) -> Dict:
@@ -281,52 +279,24 @@ class ClassInitMeta:
 
     @classmethod
     def decode(cls, obj: object) -> "ClassInitMeta":
-        
+        ''' Assumes the serialized class meta data is modified
+            to fill in appropriate values for arguments
+        '''
         try:
             class_name = obj['_meta']['cls']
             module_name = obj['_meta']['module']
             package_name = obj['_meta']['pkg']
             meta = cls(class_name, module_name, package_name)
             
+            meta.clear_kwargs() # want to deserialize only this with values set
             for kw, arg in obj['kwargs'].items():
-                if arg is not None and arg != '':
+                if arg != '':
                     meta.add_kwarg(kw, arg)
                 
             return meta
         except (KeyError, ImportError):
             return obj
         
-# class GameInitMeta(ClassInitMeta):
-#     def __init__(self, specifier: str,
-#                        class_name: str,
-#                        module_name: str,
-#                        package_name: str = '.') -> None:
-#         super().__init__(class_name, module_name, package_name)
-#         self.__specifier = specifier
-    
-#     @property
-#     def encoding(self) -> Dict:
-        
-#         return {self.__specifier:super().encoding}
-
-#     @classmethod
-#     def decode(cls, obj: object) -> "GameInitMeta":
-        
-#         try:
-#             specifier = obj['specifier']
-#             class_name = obj['_meta']['cls']
-#             module_name = obj['_meta']['module']
-#             package_name = obj['_meta']['pkg']
-#             meta = cls(specifier, class_name, module_name, package_name)
-            
-#             for kw, arg in obj['kwargs'].items():
-#                 if arg is not None and arg != '':
-#                     meta.add_kwarg(kw, arg)
-                
-#             return meta
-#         except (KeyError, ImportError):
-#             return obj
-
 
 
 

@@ -47,7 +47,6 @@ class ServerClientService(Thread):
             
             #######???POTENTIAL FOR THREAD LOCK OR RACING???
             request = self.__requests.pop(0) # process next request (queue)
-            print('REQUEST', request)
             
             if self.__client_id is None:   # authentication form not sent yet
                 self.__client_id = request.session.client_id
@@ -186,15 +185,15 @@ class GameClientService(ServerClientService):
         
         # loads and sends start page for game
         if action == '/game':
-            game_name = self.__parse_query(request_type, 'game=') ######???DO I NEED LOWER CASE???
+            game_name = self.__parse_query(request_type, 'game=')
             print(f'Starting {game_name}')
             self.__game = self.__engine.load_game(game_name)
-            player = Player(self.client.name, self.client_id)
-            self.__game['game'].add_player(player)
-            kwargs['player'] = player
+            self._ServerClientService__client = Player(self.client.name, self.client_id)
+            self.__game['game'].add_player(self.client)
+            kwargs['player'] = self.client
             header = HTTPHeader()
             header.content_type = 'text/html; charset=utf-8'
-            header.connection = 'keep-alive'
+            # header.connection = 'keep-alive'
             header.cache_control = 'no-cache'
             
             output = self.__game['view'].introduction(**kwargs)
@@ -203,18 +202,21 @@ class GameClientService(ServerClientService):
             request.connection.render(output, header=header)
             return
         
-        
-        # print('AFTER START:', '/game/' + self.__game['game'].name)
-        
         # send a game page
         if self.__game['game'] is not None and action == '/game/' + self.__game['game'].name.lower():
-            print(f'IN game/{self.__game["game"].name}')
             kwargs = self.__game['view'].get_play(request.request_type)
             result = self.__game['game'].play_next(**kwargs)
-            response = dict(session=HTTPSession(self.client_id),
+            kwargs = dict(session=HTTPSession(self.client_id),
                             game_result=result)
             
-            self.__game['view'].render(**response)
+            reponse = self.__game['view'].render(**kwargs)
+            
+            header = HTTPHeader()
+            header.content_type = 'text/html; charset=utf-8'
+            header.cache_control = 'no-cache'
+            header.content_length = len(reponse)
+            
+            request.connection.render(reponse, header=header)
             return
         
         # send admin menu
@@ -328,9 +330,6 @@ class GameClientService(ServerClientService):
         
         games_menu = self.__read_output_file(self.config.GAME_MENU)
         
-        # print('READING GAME FILE:', self.config.GAME_MENU)
-        # print('GameClientService.__send_games_menu\n', games_menu)
-        
         game_names = self.__engine.get_games()
         
         games_html = ''
@@ -372,7 +371,7 @@ class GameServer:######This Should be a thread, so that it can be shutdown
         self.__engine = GameEngine(data_access)
         self.__server.bind((address, port))
         self.__server.listen(5)
-        print(f'Starting server on {port}...')
+        print(f'Server started on {port}')
         
     def start(self) -> None:
         with self.__server as server:
@@ -404,7 +403,6 @@ class GameServer:######This Should be a thread, so that it can be shutdown
         '''
         service = GameClientService(Config(), self.__engine)
         self.__clients[request.session.client_id] = service
-        print('New Game Client Service created')
         service.push(request)
 
 
@@ -424,7 +422,6 @@ class RequestRouter(Thread):
         
         if not request.session: # no session, so make a new one
             request.session = HTTPSession(request.name + str(time.time()))
-            print(request.session)
         self.route_request(request)
     
     def route_request(self, request: HTTPRequest) -> None:
@@ -432,7 +429,6 @@ class RequestRouter(Thread):
             the server create an new client and routes the
             request to it.
         '''
-        print('REQUESTROUTER routed:', request.request_type)
         try:
             client_id = request.session.client_id
             self.__server.clients[client_id].push(request)
@@ -444,20 +440,21 @@ class RequestRouter(Thread):
             # AttribiteError: session should never be None
             self.__server.create_client(request)######MAY HAVE TO LOCK ON THIS
     
-
+    
+def close_server():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+        server.bind(('localhost', 6500))
+        print("Closing server")
+        server.close()
+        print("Closed")
+        from sys import exit
+        exit()
 
 
 if __name__ == '__main__':
-    from sys import exit
     
-    def close_server():
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
-            server.bind(('localhost', 6500))
-            print("Closing server")
-            server.close()
-            print("Closed")
-            from sys import exit
-            exit()
+    
+    
             
     # close_server()
     
@@ -532,8 +529,24 @@ if __name__ == '__main__':
     #             server.close()
     # finally:
     #     server.close()
-    
-    
+
+'''
+Exception in thread Thread-115:
+Traceback (most recent call last):
+  File "/opt/anaconda3/lib/python3.9/threading.py", line 973, in _bootstrap_inner
+    self.run()
+  File "/Users/robertjmcginness/src/pyth/rjm_games_2_0/rjm_gaming/game_server.py", line 57, in run
+    self.__process_request(request)
+  File "/Users/robertjmcginness/src/pyth/rjm_games_2_0/rjm_gaming/game_server.py", line 91, in __process_request
+    self.get(**kwargs)
+  File "/Users/robertjmcginness/src/pyth/rjm_games_2_0/rjm_gaming/game_server.py", line 208, in get
+    result = self.__game['game'].play_next(**kwargs)
+  File "/Users/robertjmcginness/src/pyth/rjm_games_2_0/rjm_gaming/game_base.py", line 226, in play_next
+    result = self._next_result(**kwargs)
+  File "/Users/robertjmcginness/src/pyth/rjm_games_2_0/games/quiz.py", line 211, in _next_result
+    question_num=self.__current_submission.question.q_id,
+AttributeError: 'NoneType' object has no attribute 'question'
+'''
         
         
         

@@ -36,10 +36,12 @@ class GameEngine:
         for line in init_lines:
             game_name = line.split('~')
             initialization = game_name[1] # reusing the game_name variable
+            
             game_name = game_name[0]
             game_data = dict(name=game_name)
             game_data['class_meta'] = json.loads(initialization, 
                                             object_hook=ClassInitMeta.decode)
+            
             game_initializers.append(game_data)
     
         return game_initializers
@@ -65,8 +67,6 @@ class GameEngine:
                     
             game_obj = game_meta.instance()
             view_obj = view_meta.instance()
-            
-            print('IN GameEngine.load_game', game_obj.name)
             
             return dict(game=game_obj, view=view_obj)
         

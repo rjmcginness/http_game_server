@@ -27,7 +27,7 @@ class ServerClient:
         return self.__authenticated
     
     def __repr__(self) -> str:
-        return f'name={self.__name} id={self.__id} authenticated={self.__authenticated}'
+        return f'name={self.__name} id={self.__session} authenticated={self.__authenticated}'
     
     def __eq__(self, client2) -> bool:
         return (self.__name == client2.name and 
