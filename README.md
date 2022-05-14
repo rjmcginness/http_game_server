@@ -10,3 +10,8 @@ complete redesign
             page to load.  This may have something to do with favicon.ico.  Might need to
             send a fake (or real) icon.  May want to make it non-cacheable, so that it is
             predictable, when the browser will request it.
+            
+           Able to load quiz with single question.  Still need to solve the loading problem.
+           Considering trying to read after each send, then setting a short timeout on the
+           socket.  This will have to be contained in a try-except block, but may be
+           necessary to hunt and kill favicon.  
