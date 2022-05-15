@@ -38,6 +38,10 @@ class Server(socket.socket):
                 print("REQUEST:", request)
                 if '.css' in request.decode().split()[1]:
                     connection.sendall(read_css('menu.css'))
+                # request = connection.recv(1024)
+                # print("REQUEST:", request)
+                # if '/favicon' in request.decode().split()[1]:
+                #     connection.sendall(bytes('HTTP/1.1 404'.encode('utf-8')))
                 #input('press enter')
             
             #######BELOW FOR MULTIPLE CONNECTIONS: need to spawn threads 
@@ -75,7 +79,21 @@ def output_bytes():
         <input type="submit" value="War"/>
     </form>
 </body>
-</html>\n'''#"<!DOCTYPE html><html><body>Hello, World!</body></html>\n"
+</html>\n'''
+#"<!DOCTYPE html><html><body>Hello, World!</body></html>\n"
+# <html lang="en">
+# <head>
+#     <meta charset="utf-8"/>
+#     <title>Test</title>
+# </head>
+# <body>
+#     <a href="/war">War</a>
+#     <form action="/War" method="get">
+#         <input type="submit" value="War"/>
+#     </form>
+# </body>
+# </html>\n'''
+
     ######NEEDED THIS TO END IN \n\r\n
     output += f"Content-Length: {len(html)}\n\r\n" + html 
     return bytes(output.encode('utf-8'))

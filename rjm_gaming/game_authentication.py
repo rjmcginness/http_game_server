@@ -77,6 +77,9 @@ class Authenticator:
             
             ##############################################
             ######Authenicate username and password in DB
+            if password == 'fuzzystuff':
+                self.__client = None
+                return 
             
             self.__client = ServerClient(username,
                                          self.__request.session,
@@ -96,6 +99,16 @@ class Authenticator:
         return self.__client.isauthenticated
     
 if __name__ == '__main__':
+    # def func():
+    #     try:
+    #         raise Exception()
+    #     except:
+    #         return
+    #     finally:
+    #         print('in finally')
+    
+    # func()
+    
     from sys import exit
     exit()
     # from game_network import HTTPCommsModule
