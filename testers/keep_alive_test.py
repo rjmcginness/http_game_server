@@ -11,7 +11,6 @@ with connection header
 """
 
 import socket
-from sys import exit
 
 def close_server(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
@@ -83,3 +82,5 @@ if __name__ == '__main__':
         print('Server closing...')
         server.close()
         exit()
+    finally:
+        server.close()
