@@ -67,8 +67,8 @@ class ServerClientService(Thread):
         '''
         header = HTTPHeader()
         header.content_type = 'text/html; charset=utf-8' # sending html
-        header.connection = 'keep-alive'
-        header.cache_control = 'no-cache'
+        header.connection = 'keep-alive' # NEED THIS< BECAUSE OF FAVICON
+        # header.cache_control = 'no-cache'
         
         client_id = request.session.client_id
         session = HTTPSession(client_id) # new session with client_id
@@ -76,7 +76,12 @@ class ServerClientService(Thread):
         login_form = session.form_file_insert(self.__config.LOGIN_FORM)
         header.content_length = str(len(login_form)) # include dynamic content length of html 
         
+        
         request.connection.render(login_form, header=header)
+        request.connection.hunt_and_kill_favicon()
+        request.mark_complete()
+        
+        
     
     def __process_request(self, request: HTTPRequest) -> None:
         '''Distributes the HTTPRequest to the proper CRUD handler'''
@@ -153,29 +158,33 @@ class GameClientService(ServerClientService):
         ######to safety
         request_type = kwargs['request_type']
         action = self.__parse_path(request_type)
-        print(request_type)
-        
-        # authenticate or send main menu page
-        if action == '/' or action == '/auth':
-            if self.client is None: # no authenticated client
-                self.__authenticate(**kwargs)
-            else: 
-                action = '/menu' # go to main menu
-        
-        # if here, there is an authenticated client
         
         request = kwargs['request']
         
-        if '/favicon.ico' in action:
-            print("IN /favicon")
-            self.__kill_favicon(request)
-            return
+        # authenticate or send main menu page
+        # if action == '/' or action == '/auth':
+        if action == '/auth':
+            if self.client is None: # no authenticated client
+                if not self.__authenticate(**kwargs):
+                    self.__send_login_failed(request)
+                    return
+                
+            action = '/menu' # go to main menu
+        
+        # if here, there is an authenticated client
+        
+        
+        
+        # if '/favicon.ico' in action:
+        #     print("IN /favicon")
+        #     self.__kill_favicon(request)
+        #     return
         
         # send main menu
         if action == '/menu':
+            
             # self.__kill_favicon(request)
             self.__send_main_menu(request)
-            
             return
         
         # send games menu
@@ -193,7 +202,7 @@ class GameClientService(ServerClientService):
             kwargs['player'] = self.client
             header = HTTPHeader()
             header.content_type = 'text/html; charset=utf-8'
-            # header.connection = 'keep-alive'
+            header.connection = 'close'
             header.cache_control = 'no-cache'
             
             output = self.__game['view'].introduction(**kwargs)
@@ -214,6 +223,7 @@ class GameClientService(ServerClientService):
             header = HTTPHeader()
             header.content_type = 'text/html; charset=utf-8'
             header.cache_control = 'no-cache'
+            header.connection = 'close'
             header.content_length = len(reponse)
             
             request.connection.render(reponse, header=header)
@@ -253,23 +263,22 @@ class GameClientService(ServerClientService):
         
         return html
     
-    def __authenticate(self, **kwargs) -> None:
+    def __authenticate(self, **kwargs) -> bool:
+        ''' Use Authenticator object to authenticate client
+            Return True on success, False on failure
+        '''
         # run authenticator to authenticate client
         authenticator = Authenticator(self.config, **kwargs)
         
         if not authenticator.success:
             print('AUTHENTICATION FAILED')
-            self.__client_id = None # Have to resend form
-            return
+            self._ServerClientService__client_id = None # this will cause authentication to be resent in base class
+            return False
     
         self._ServerClientService__client = authenticator.client
         print(f'User Authenticated:\n{self.client.name} ({self.client.client_id}) has entered')
-        # self.__kill_favicon(kwargs['request'])
-    
-    def __kill_favicon(self, request:HTTPRequest) -> None:
-        # favicon should not exist
-        print('Kill favicon')
-        request.connection.render('', status_code=404)
+        
+        return True
         
     
     def __parse_path(self, request_type: str) -> str:
@@ -287,6 +296,23 @@ class GameClientService(ServerClientService):
             return output_file
         
         return request.session.form_insert(output_file)
+    
+    def __send_login_failed(self, request: HTTPRequest) -> None:
+        ''' User credentials not authenticated. Send page telling client
+            that has a link back to login page.
+        '''
+        header = HTTPHeader()
+        header.content_type = 'text/html; charset=utf-8'
+        header.connection = 'close'
+        
+        login_fail_file = self.__read_output_file(self.config.LOGIN_FAIL)
+        
+        # following adds session info to page
+        login_fail_file = self.__prep_output_file(login_fail_file, request)
+        
+        header.content_length = len(login_fail_file)
+        
+        request.connection.render(login_fail_file, header=header)
         
     def __send_main_menu(self, request: HTTPRequest) -> None:
         
@@ -295,7 +321,7 @@ class GameClientService(ServerClientService):
         header = HTTPHeader()
         # header.set_cookie = f'cookie1={request.session}'
         header.content_type = 'text/html; charset=utf-8'
-        header.connection = 'keep-alive'
+        header.connection = 'close' # could make these smarter by parsing for text/css, etc
         # header.cache_control = 'no-cache' ######DO I NEED THIS????
         
         # load main menu and prepare with session, if present
@@ -327,6 +353,7 @@ class GameClientService(ServerClientService):
         
         header = HTTPHeader()
         header.content_type = 'text/html; charset=utf-8'
+        header.connection = 'close'
         
         games_menu = self.__read_output_file(self.config.GAME_MENU)
         
@@ -384,7 +411,7 @@ class GameServer:######This Should be a thread, so that it can be shutdown
             except (ConnectionAbortedError,
                     KeyboardInterrupt,
                     SystemExit) as e:
-                stderr.write("Server closing...\n" + str(e) + str(time.ctime()))
+                stderr.write("Server closing...\n" + str(e) + str(time.ctime()) + '\n')
                 self.shutdown()
                 raise
             
@@ -419,7 +446,7 @@ class RequestRouter(Thread):
             this request to the correct client, based on client id (session).
         '''
         request = HTTPRequest(self.__connection)
-        
+        # print(f"REQUEST:\n[{request.request}]", f'({request.session})')
         if not request.session: # no session, so make a new one
             request.session = HTTPSession(request.name + str(time.time()))
         self.route_request(request)
