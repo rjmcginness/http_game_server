@@ -16,6 +16,7 @@ from sys import stderr
 from game_network import HTTPRequest
 from game_network import HTTPHeader
 from game_network import HTTPSession
+from game_network import parse_query
 from game_authentication import Authenticator
 from game_authentication import ServerClient
 from config import Config
@@ -336,17 +337,7 @@ class GameClientService(ServerClientService):
             Returns the value as a string, if present.
             Otherwise, returns None.
         '''
-        query = request_type.split(' ')[1]
-        sections = query.split('&')
-        
-        input_value = None
-        for section in sections:
-            if name in section:
-                idx = section.index(name)
-                input_value = section[idx + len(name):]
-                break
-        
-        return input_value
+        return parse_query(request_type, name)
     
     def __send_games_menu(self, request: HTTPRequest) -> None:
         

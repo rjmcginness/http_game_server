@@ -16,6 +16,30 @@ from game_utilities import GameCommsError
 from game_utilities import FileDataAccess
 
 
+def parse_query(self, request_type: str, name: str) -> str:
+    ''' Get the input value from request.
+        Returns the value as a string, if present.
+        Otherwise, returns None.
+    '''
+    query = request_type.split(' ')[1]
+    sections = query.split('&')
+    
+    input_value = None
+    for section in sections:
+        if name in section:
+            idx = section.index(name)
+            input_value = section[idx + len(name):]
+            break
+    
+    return input_value
+
+def remove_http_pluses(data: str) -> str:
+    '''Dealing with spaces in html and the problem of a + in an answer'''
+    temp = data.replace('+++', '`')
+    temp = temp.replace('+', ' ')
+    
+    return temp.replace('`', ' + ')
+
 class HTTPStatusCode(Enum):
     ######should complete this with all of them or use http package
     VERSION = 'HTTP/1.1'

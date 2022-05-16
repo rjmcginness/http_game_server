@@ -10,4 +10,5 @@ class Config:
     LOGIN_FAIL = '../static/login_failed.html'
     GAME_MENU = '../static/menu.html'
     MENU_FILE = '../static/mainmenu.html'
+    ADMIN_PAGE = '../static/admin.html'
     EXIT = '../static/exit.html'
