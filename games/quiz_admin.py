@@ -5,12 +5,15 @@ Created on Mon May 16 13:36:34 2022
 @author: Robert J McGinness
 """
 
+import time
+
 from rjm_gaming.game_admin import GameAdmin
 from rjm_gaming.game_network import HTTPRequest
 from rjm_gaming.game_network import parse_query
 from rjm_gaming.game_network import remove_http_pluses
 from rjm_gaming.game_base import Game
 from config import Config
+from quiz import Question
 
 
 class QuizAdmin(GameAdmin):
@@ -31,7 +34,7 @@ class QuizAdmin(GameAdmin):
         
         return self.__build_question_page(request)
     
-    def __build_question(self, request: HTTPRequest) -> str:
+    def __build_question(self, request: HTTPRequest) -> Question:
         question = parse_query(request['request_type'], 'question=')
         answer = parse_query(request['request_type'], 'answer=')
         choice1 = parse_query(request['request_type'], 'choice1=')
@@ -46,3 +49,9 @@ class QuizAdmin(GameAdmin):
         choice2 = remove_http_pluses(choice2)
         choice3 = remove_http_pluses(choice3)
         choice4 = remove_http_pluses(choice4)
+        
+        return Question(question,
+                        answer,
+                        str(time.time()),
+                        [choice1, choice2, choice3, choice4],
+                        'multiple_choice')
