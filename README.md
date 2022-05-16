@@ -33,9 +33,9 @@ complete redesign
             information (initialization, results, users).  Also, it seems that the back
             buttons may not be working properly, though further testing is needed.
 
-5/15/2022  Fully working version of Game.  Still may not record answers correctly when you 
-            used back and forward buttons during the Quiz game.  NOT yet implemented: user       
-            registration and real user validation.  These will be in the admin "link."
+5/15/2022  Fully working version of Server.  Still may not record answers correctly when
+            you used back and forward buttons during the Quiz game.  NOT yet implemented:
+            user registration and real user validation.  These will be in the admin "link."
             Also in admin, I will try to implement forms to create a quiz.  It would also
             be nice to complete the css request.  This was solved in servertest.py, but
             not sure there is time to implement and test properly.  
