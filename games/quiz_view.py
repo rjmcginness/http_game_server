@@ -100,7 +100,7 @@ class QuizView(GameView):
         result = kwargs['game_result']
         game_html = self.render_result_with_file(result, file_name)
         
-        return session.form_insert(game_html)
+        return session.form_insert(game_html) # add session information and return
     
     def render_result_with_file(self, result: GameResult,
                                       file_name:str) -> str:
@@ -129,10 +129,7 @@ class QuizView(GameView):
         
         choices_list = question.choices
         game_html = game_html.replace('</fieldset>',
-                            self.__build_choices(choices_list) + '</fieldset>')
-        
-        ################################################
-        ######ADD HIDDEN IDENTIFIER
+                            self.__build_choices(choices_list, result_data['answer']) + '</fieldset>')
         
         return game_html
     
@@ -141,7 +138,7 @@ class QuizView(GameView):
         
         return question_html.replace('QUESTION', question)
     
-    def __build_choices(self, choices: List[str]) -> str:
+    def __build_choices(self, choices: List[str], answer: str) -> str:
         radio_button = '<input type="radio" id="XXX" name="answer" value="CHOICE"/>'
         label = '<label for="XXX">CHOICE</label><br/>'
         
@@ -151,6 +148,10 @@ class QuizView(GameView):
             choice_html = radio_button + label
             choice_html = choice_html.replace('XXX', str(counter))
             choice_html = choice_html.replace('CHOICE', choice)
+            
+            # show answer, if already given
+            if answer and answer == choice.replace(' ', '+'): # dealing with spaces changed to + in html form
+                choice_html = choice_html.replace('/>', ' checked />')
             all_choices_html += choice_html
             counter += 1
         

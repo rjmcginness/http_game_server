@@ -16,7 +16,6 @@ from random import sample
 
 from rjm_gaming.game_base import Game
 from rjm_gaming.game_base import GameResult
-from rjm_gaming.game_base import Player
 
 
 class Question:
@@ -100,14 +99,20 @@ class QuizSubmission:
     
     @property
     def answer(self) -> Answer:
+        # '''Dealing with spaces in html and the problem of a + in an answer'''
+        # if '+++' in self.__answer:
+        #     temp = self.__answer.replace('+++', '`')
+        #     temp = temp.replace('+', ' ')
+        #     return temp.replace('`', ' + ')
         return self.__answer
     
     @answer.setter
     def answer(self, ans: Any) -> None:
+        '''Needs to add in + characters to handle answers with spaces'''
         self.__answer = ans
         self.__isanswered = True if ans is not None else False
         self.__iscorrect = (self.__isanswered and \
-                            (self.__answer.value == self.__question.answer))
+                            (self.__answer.value == self.__question.answer.replace(' ', '+')))
     
     @property
     def isanswered(self) -> bool:
@@ -149,78 +154,96 @@ class Quiz(Game):
             question.q_id = i + 1
             submissions.append(QuizSubmission(question, None))
             
+        print('QUIZ QUESTIONS>>>>>', len(submissions))
+            
         return submissions
          
     def _next_result(self, **kwargs) -> GameResult:
-        
+        ''' To get the next result, the game object must be passed
+            a command.  The command is processed and a GameResult
+            is returned.
+        '''
         command = kwargs['input'].lower()
-        
-        
         
         # process start of new quiz
         if command == 'start':
-            print("START!!!!!")
             return GameResult(self.players,
                               game_name='Quiz',
                               result_id=1, 
                               question=self.__current_submission.question,
+                              answer=None,
                               prev_question=None,
                               next_question=self.__next_submission())
         
+        # Prep result values
         results = {} # additional key-value pairs for results
-        game_over = False
         
         # process submission of quiz
-        if command == 'submit':
-            answer = kwargs['answer']
-            self.__current_submission.answer = Answer(answer)
-            # results['game_over'] = True
-            game_over = True
-            # results['results'] = tuple(enumerate(self.__quiz_submissions))
-            results['num_correct'] = len(list(filter(q for q in \
-                                                     self.__quiz_submissions \
-                                                     if q.iscorrect)))
+        if command == 'submit+quiz': # because button will say Submit Quiz with a space
+            print('SUBMIT>>>>>>>>')
+            self.__current_submission.answer = Answer(kwargs['answer'])
+            results['num_correct'] = len(list(filter(lambda q: q.iscorrect, self.__quiz_submissions)))
             results['percent'] = f"{100*results['num_correct']/len(self.__quiz_submissions)}%"
             results['questions'] = tuple(self.__quiz_submissions)
-
+            
+            return GameResult(self.players,
+                              game_name='Quiz',
+                              result_id=len(self.results) + 1,
+                              game_over=True,
+                              question_num=0,
+                              question=None,
+                              answer=None,
+                              prev_question=None,
+                              next_question=None,
+                              **results)
+        # initialize output value    
+        answer = None # this will be the answer sent to the client
+        self.__current_submission.answer = Answer(kwargs['answer']) # This is the answer on the current screen.  May be None
+        
         # process a submitted answer
         if command == 'answer':
-            answer = kwargs['answer']
-            self.__current_submission.answer = Answer(answer)
-            self.__current_submission = self.__next_submission()
-        
-        # process a skipped answer
-        if command == 'skip':
-            self.__current_submission.answer = None
-            self.__current_submission = self.__next_submission()
-        
-        # process going back to the last question
-        if command == 'back':
-            answer = kwargs['answer']
-            self.__current_submission.answer = Answer(answer)
-            self.__current_submission = self.__prev_submission()
+            next_submission = self.__next_submission()
             
-        answer_value = None
-        if self.__current_submission and self.__current_submission.answer:
-            answer_value = self.__current_submission.answer.value
+            # if no next question (submission), keep current question, otherwise
+            # make current question next question (submission)
+            if next_submission:
+                next_answer = next_submission.answer
+                answer = next_answer.value if next_answer else None
+                self.__current_submission = next_submission
+            else:
+                answer = self.__current_submission.answer.value
+        else:
+            if command == 'skip': # button only visible, if there is a next question
+                self.__current_submission = self.__next_submission()
             
+            # process going back to the last question
+            if command == 'back': # back button only visible, if there is a previous question
+                self.__current_submission = self.__prev_submission()
+                
+            # get the answer on the coming page, if there was already one
+            last_answer = self.__current_submission.answer
+            answer = last_answer.value if last_answer else None
+        
         return GameResult(self.players,
                           game_name='Quiz',
                           result_id=len(self.results) + 1,
-                          game_over=game_over,
+                          game_over=False,
                           question_num=self.__current_submission.question.q_id,
                           question=self.__current_submission.question,
-                          answer=answer_value,
+                          answer=answer,
                           prev_question=self.__prev_submission(),
                           next_question=self.__next_submission(),
                           **results)
             
+            
     def __prev_submission(self) -> QuizSubmission:
         try:
             idx = self.__quiz_submissions.index(self.__current_submission)
+            if idx == 0: # need this, because if current is at index 0, -1 is an actual index
+                return None
             
             return self.__quiz_submissions[idx-1]
-        except IndexError:
+        except (ValueError, IndexError): # no current submission in list or no previous
             return None
     
     def __next_submission(self) -> QuizSubmission:
@@ -228,7 +251,7 @@ class Quiz(Game):
             idx = self.__quiz_submissions.index(self.__current_submission)
             
             return self.__quiz_submissions[idx + 1]
-        except IndexError:
+        except (ValueError, IndexError): # no current submission in list or no next
             return None
         
 if __name__ == '__main__':
@@ -252,6 +275,15 @@ if __name__ == '__main__':
     json_data = json.dumps(q.encoding)
     print(json_data)
     
+    
+    q = Question("Where did the name for the programming language Python come from?",
+                 'Monty Python',
+                 str(time.time()),
+                 ['Monty Python', 'Quido Python van Rossum', 'A Snake Species', "A Wrestler's nickname"],
+                 'multiple choice')
+    
+    json_data = json.dumps(q.encoding)
+    print(json_data)
     
     
     # import time
