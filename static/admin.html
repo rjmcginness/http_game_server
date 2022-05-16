@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>RJM GAMING METAVERSE - Create New Quiz</title>
+</head>
+<body>
+    <h1>New Question</h1>
+    <form action="/admin" method="get">
+        <label for="quiz_name">Quiz Name</label>
+        <input type="textbox" id="quiz_name" name="name" placeholder="Quiz Name" />
+        <label for="question">Question:</label>
+        <input type="textbox" id="question" name="question" placeholder="enter new question here" />
+        <label for="answer">Correct Answer:</label>
+        <input type="textbox" id="answer" name="answer" placeholder="enter correct answer here" />
+        <fieldset>
+            <legend>Choices</legend>
+            <label for="choice1">Choice 1:</label>
+            <input type="textbox" id="choice1" name="choice1" placeholder="choice 1" />
+            <label for="choice2">Choice 2:</label>
+            <input type="textbox" id="choice2" name="choice2" placeholder="choice 2" />
+            <label for="choice3">Choice 3:</label>
+            <input type="textbox" id="choice3" name="choice3" placeholder="choice 3" />
+            <label for="choice4">Choice 4:</label>
+            <input type="textbox" id="choice4" name="choice4" placeholder="choice 4" />
+        </fieldset>
+        <input type="submit" value="new_question" name="input" />
+    </form>
+    <br />
+    <hr>
+    <form action="/menu" method="get">
+        <input type="submit" value="Exit" name="input" />
+    </form>
+</body>
+</html>
