@@ -38,7 +38,7 @@ class ServerClientService(Thread):
         self.__exit = False
         
     def run(self):
-        ''' If client_id is None, generate and id, embed in html, and
+        ''' If client_id is None, generate an id, embed in html, and
             send the authentication form to user
         '''
         while not self.__exit:
@@ -173,13 +173,6 @@ class GameClientService(ServerClientService):
         
         # if here, there is an authenticated client
         
-        
-        
-        # if '/favicon.ico' in action:
-        #     print("IN /favicon")
-        #     self.__kill_favicon(request)
-        #     return
-        
         # send main menu
         if action == '/menu':
             
@@ -211,14 +204,17 @@ class GameClientService(ServerClientService):
             request.connection.render(output, header=header)
             return
         
-        # send a game page
+        # send a game page: should be called when message sent back from game screen
         if self.__game['game'] is not None and action == '/game/' + self.__game['game'].name.lower():
             kwargs = self.__game['view'].get_play(request.request_type)
+            print()
+            print(kwargs)
+            print()
             result = self.__game['game'].play_next(**kwargs)
             kwargs = dict(session=HTTPSession(self.client_id),
                             game_result=result)
             
-            reponse = self.__game['view'].render(**kwargs)
+            reponse = self.__game['view'].render(**kwargs) # use GameView to render output
             
             header = HTTPHeader()
             header.content_type = 'text/html; charset=utf-8'
@@ -236,11 +232,15 @@ class GameClientService(ServerClientService):
         
         # exit and close this service
         if action == '/exit': # kill the client
+            self.__send_exit(request)
             self._ServerClientService__client = None
             self.__client_id = None
-            # # self.stop()
-            # self.__authenticate(**kwargs)
             return
+        
+        header = HTTPHeader()
+        header.connection = 'close'
+        header.content_length = 0
+        request.connection.render('', header=header, status_code=404)
             
     
     def put(self, **kwargs) -> None:
@@ -322,7 +322,6 @@ class GameClientService(ServerClientService):
         # header.set_cookie = f'cookie1={request.session}'
         header.content_type = 'text/html; charset=utf-8'
         header.connection = 'close' # could make these smarter by parsing for text/css, etc
-        # header.cache_control = 'no-cache' ######DO I NEED THIS????
         
         # load main menu and prepare with session, if present
         main_menu = self.__read_output_file(self.config.MENU_FILE)
@@ -374,7 +373,7 @@ class GameClientService(ServerClientService):
         
     
     def __build_game_html(self, game_name: str) -> str:
-        game_link = f'<form action="/game" method="get">'
+        game_link = '<form action="/game" method="get">'
         game_link += f'<input type="submit" value="{game_name}" name="game" />'
         game_link += '</form>'
         
@@ -384,6 +383,18 @@ class GameClientService(ServerClientService):
         print("NOT IMPLEMENTED")
         ######SEND BACK MAIN MENU FOR NOW
         self.__send_main_menu(request)
+    
+    
+    def __send_exit(self, request: HTTPRequest) -> None:
+        header = HTTPHeader()
+        header.content_type = 'text/html; charset=utf-8'
+        header.connection = 'close'
+        
+        exit_page = self.__read_output_file(self.config.EXIT)
+        
+        header.content_length = len(exit_page)
+        
+        request.connection.render(exit_page, header=header)
         
     
 
@@ -446,9 +457,10 @@ class RequestRouter(Thread):
             this request to the correct client, based on client id (session).
         '''
         request = HTTPRequest(self.__connection)
-        # print(f"REQUEST:\n[{request.request}]", f'({request.session})')
+        
         if not request.session: # no session, so make a new one
             request.session = HTTPSession(request.name + str(time.time()))
+            
         self.route_request(request)
     
     def route_request(self, request: HTTPRequest) -> None:
