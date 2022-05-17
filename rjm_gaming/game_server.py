@@ -237,9 +237,9 @@ class GameClientService(ServerClientService):
             header.content_type = 'text/html; charset=utf-8'
             header.cache_control = 'no-cache'
             header.connection = 'close'
-            header.content_length = len(reponse)
+            header.content_length = len(response)
             
-            print('>>>>>>>', response)
+            
             
             request.connection.render(response, header=header)
             return
