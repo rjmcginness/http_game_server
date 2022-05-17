@@ -97,7 +97,7 @@ class QuizMaker:
     
     def remove_question(self, question_number: int) -> None:
         try:
-            del self.__question_buffer[question_number]
+            del self.__question_buffer[question_number-1] # not passed as an indexs
         except IndexError:
             return
         
@@ -137,31 +137,8 @@ def build_new_questions(quiz_maker: QuizMaker) -> None:
     question_tuple = ()
     # QUESTION ENTRY LOOP
     while True:
-        
         question_tuple = build_new_question(quiz_maker)
         quiz_maker.add_question(*question_tuple)
-        # print(f'Enter question {quiz_maker.question_count + 1}') 
-        
-        # option =  input('Press enter to continue or type c and ' + \
-        #                 'press enter to stop adding questions:')
-        # # if option.strip().lower() == 'c':
-        #     # exit loop to main loop
-        #     break
-        
-        # # enter data for new question in pieces
-        # question = get_question_input("question")
-        # answer = get_question_input("answer")
-        
-        # # choices will appear in question in order entered
-        # choices = []
-        # choices.append(get_question_input("choice 1"))
-        # choices.append(get_question_input("choice 2"))
-        # choices.append(get_question_input("choice 3"))
-        # choices.append(get_question_input("choice 4"))
-        
-        # ######NOT POSSIBLE TO ENTER ANYTHING BUT MULTIPLE CHOICE RIGHT NOW
-        
-        # quiz_maker.add_question(question, answer, choices)
 
 def build_new_question(quiz_maker: QuizMaker) -> Tuple:
     print(f'Enter question {quiz_maker.question_count + 1}') 
@@ -210,17 +187,29 @@ def run_modify(quiz_maker: QuizMaker) -> None:
         option = input('Enter selection: ').strip().lower()
     
     if option in ['add', 'a', '1', '1.']:
-        build_new_question(quiz_maker)
+        question_tuple = build_new_question(quiz_maker)
+        if question_tuple:
+            quiz_maker.add_question(*question_tuple)
         return
     
     if option in ['replace', 'r', 'rep', '2', '2.']:
-        question_number = input('Enter question number to modify: ')
+        question_number = input('Enter question number to replace: ')
+        try:
+            question_number = int(question_number)
+        except TypeError:
+            print('Invalid question number entered.  Must be an integer\n')
+            return
+        
         question_tuple = build_new_question(quiz_maker)
         quiz_maker.replace(question_number, *question_tuple)
 
     if option in ['delete', 'd', 'del', '3', '3.']:
-        question_number = input('Enter question number to modify: ')
-        quiz_maker.remove_question(question_number)
+        question_number = input('Enter question number to delete: ')
+        try:
+            quiz_maker.remove_question(int(question_number))
+        except TypeError:
+            print('Invalid question number entered.  Must be an integer\n')
+            return 
 
 def save_quiz(quiz_maker: QuizMaker) -> None:
     ''' If the quiz has questions, double checks with user,
