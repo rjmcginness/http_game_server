@@ -3,8 +3,19 @@
 <head>
     <meta charset="utf-8" />
     <title>RJM Gaming Metaverse - Login</title>
+    <style>
+        input[value="create account"] {
+            border: none;
+            background: none;
+            color: darkblue;
+            font-size: 14px;
+            text-decoration-line: underline;
+        }
+    </style>
 </head>
 <body>
+    <h1>Welcome to the RJM gaming Metaverse!</h1>
+    <h4>Please Login</h4>
     <form action="/auth" method="get">
         <div>
             <label for="username">User Name:</label>
@@ -17,6 +28,9 @@
         <div>
             <input type="submit" value="Login" />
         </div>
+    </form>
+    <form action="/register" method="get">
+        <input type="submit" value="create account" />
     </form>
 </body>
 </html>
