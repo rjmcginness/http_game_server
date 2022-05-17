@@ -251,6 +251,8 @@ class GameClientService(ServerClientService):
         
         # exit and close this service
         if action == '/exit': # kill the client
+            
+            ######MAY HAVE TO FIX THIS, CHANGE FROM FORM TO REDIRECT
             self.__send_exit(request)
             self._ServerClientService__client = None
             self.__client_id = None
