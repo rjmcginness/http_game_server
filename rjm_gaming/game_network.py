@@ -16,7 +16,7 @@ from game_utilities import GameCommsError
 from game_utilities import FileDataAccess
 
 
-def parse_query(self, request_type: str, name: str) -> str:
+def parse_query(request_type: str, name: str) -> str:
     ''' Get the input value from request.
         Returns the value as a string, if present.
         Otherwise, returns None.
@@ -250,66 +250,6 @@ class HTTPCommsModule:
             self.__connection.shutdown(socket.SHUT_RDWR)
             self.__connection.close()
     
-    # def hunt_and_kill_favicon(self, timeout: float = 1.0,
-    #                                 css_handler = None,
-    #                                 js_handler = None,
-    #                                 image_handler = None) -> None:
-    #     ''' Wait a second for a fetch to be sent from the browser.
-    #         If it comes, process and wait again.  If you get favicon, 404 it!
-            
-    #         ######NEEDS TO BE TESTED DiRECTLY FOR MUTLIPLE FETCHES, EX favicon,
-    #         then css, etc.
-            
-    #         ######NOW THAT IT IS IN THE HTTPCOMMSMODULE< MAY CHANGE TO FILES
-    #         ######RATHER THAN HANDLERS
-    #     '''
-        
-    #     while True:
-            
-    #         try:
-    #             self.__connection.settimeout(timeout) ###this actually serves to determine if the connection has closed
-    #             request = self.__connection.recv(2048).decode()
-    #             self.__connection.settimeout(None)
-    #             if '/favicon' in request:
-    #                 favicon_killer = 'HTTP/1.1 404\nConnection: keep-alive\n\r\n'
-                    
-    #                 favicon_killer = bytes(favicon_killer.encode('utf-8'))
-                    
-    #                 # connection.sendall(favicon_killer)
-                    
-    #                 data_sent = 0
-    #                 while data_sent < len(favicon_killer):
-    #                     data_sent += self.__connection.send(favicon_killer)
-    #                     print('kill favicon')
-    #                 continue
-                
-    #             if 'Content-Type: text/css' in request:
-    #                 css_handler(request) # just try, if it fails, or is none raises exception
-    #                 print('Do something to send css')
-    #                 continue
-                
-    #             if 'Content-Type: text/javascript' in request:
-    #                 js_handler(request) # just try, if it fails, or is none raises exception
-    #                 print('Do something to send javascript')
-    #                 continue
-                    
-    #             if 'Content-Type: image/' in request:
-    #                 image_handler(request) # just try, if it fails, or is none raises exception
-    #                 print('Do something to send image')
-    #                 continue
-               
-                    
-    #         except socket.timeout:
-                
-    #             break
-    #         except OSError as e:
-    #             ######BAD FILE DESCRIPTOR (NEED TO CHANGE THIS TO USE ERRNO MODULE)
-    #             ######THIS IS RAISED WHEN THE TIMEOUT IS CHANGED ON A CLOSED SOCKET
-    #             if e.errno == 9:
-    #                 break
-    #             raise
-    #         # finally:
-    #         #     self.__connection.close() # just to be sure
 
 class HTTPSession:
     def __init__(self, client_id: str) -> None:
