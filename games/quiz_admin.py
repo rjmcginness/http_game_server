@@ -6,21 +6,23 @@ Created on Mon May 16 13:36:34 2022
 """
 
 import time
+import json
 
 from rjm_gaming.game_admin import GameAdmin
 from rjm_gaming.game_network import HTTPRequest
 from rjm_gaming.game_network import parse_query
 from rjm_gaming.game_network import remove_http_pluses
-from rjm_gaming.game_base import Game
+from rjm_gaming.game_network import HTTPHeader
 from config import Config
 from quiz import Question
 
 
 class QuizAdmin(GameAdmin):
-    def __init__(self, game: Game, config: Config) -> None:
-        super().__init__(game, config)
+    def __init__(self, config: Config) -> None:
+        super().__init__(config)
         self.__admin_html = None
         self.__question_buffer = []
+        self.__quiz_name = None
         
         with open(config.ADMIN_PAGE, 'rt') as admin_file:
             self.__admin_html = admin_file.read()
@@ -28,11 +30,35 @@ class QuizAdmin(GameAdmin):
     def administer(self, request: HTTPRequest) -> str:
 
         query_input = parse_query(request['request_type'], 'input=')
+        self.__quiz_name = parse_query(request['request_type'], 'name=')
 
-        if  query_input == 'new_question': # a new question has been entered on the page
+        if query_input == 'Save+Quiz':
+            self.__question_buffer.append(self.__build_question(request))
+            self.__write_quiz()
+            
+        if  query_input == 'Add+Question': # a new question has been entered on the page
             self.__question_buffer.append(self.__build_question(request))
         
         return self.__build_question_page(request)
+    
+    def clear(self) -> None:
+        self.__name = None
+        self.__question_buffer.clear()
+    
+    def __write_quiz(self) -> None:
+        '''WARNING THIS WILL OVERWRITE AN EXISTING FILE'''
+        if not self.__question_buffer: # empty list
+            return
+        
+        if not self.__name:
+            self.__name = 'quiz'
+        
+        # encode each question as json, then write to file
+        with open('/quiz/' + self.__name + '.quiz', 'wt') as quiz_file:
+            for question in self.__question_buffer:
+                quiz_file.write(json.dumps(question.encoding) + '\n')
+        
+        self.clear()
     
     def __build_question(self, request: HTTPRequest) -> Question:
         question = parse_query(request['request_type'], 'question=')
@@ -55,3 +81,20 @@ class QuizAdmin(GameAdmin):
                         str(time.time()),
                         [choice1, choice2, choice3, choice4],
                         'multiple_choice')
+    
+    def __build_question_page(self, request: HTTPRequest) -> str:
+        header = HTTPHeader()
+        header.content_type = 'text/html; charset=utf-8'
+        header.connection = 'close'
+        
+        output = ''
+        
+        if self.__quiz_name:
+            output = self.__admin_html.replace('placeholder="Quiz Name"',
+                                               f'value="{self.__quiz_name}"')
+        
+        return request.session.form_insert(output)
+        
+        
+        
+        

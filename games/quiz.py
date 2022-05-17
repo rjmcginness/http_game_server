@@ -99,11 +99,6 @@ class QuizSubmission:
     
     @property
     def answer(self) -> Answer:
-        # '''Dealing with spaces in html and the problem of a + in an answer'''
-        # if '+++' in self.__answer:
-        #     temp = self.__answer.replace('+++', '`')
-        #     temp = temp.replace('+', ' ')
-        #     return temp.replace('`', ' + ')
         return self.__answer
     
     @answer.setter
@@ -131,7 +126,6 @@ class Quiz(Game):
         self.__questions = []
         self.__load_quiz()
         self.__quiz_submissions = self.__initialize()
-        
         self.__current_submission = self.__quiz_submissions[0]
     
         
@@ -153,8 +147,6 @@ class Quiz(Game):
                                             len(self.__questions))):
             question.q_id = i + 1
             submissions.append(QuizSubmission(question, None))
-            
-        print('QUIZ QUESTIONS>>>>>', len(submissions))
             
         return submissions
          
@@ -180,7 +172,6 @@ class Quiz(Game):
         
         # process submission of quiz
         if command == 'submit+quiz': # because button will say Submit Quiz with a space
-            print('SUBMIT>>>>>>>>')
             self.__current_submission.answer = Answer(kwargs['answer'])
             results['num_correct'] = len(list(filter(lambda q: q.iscorrect, self.__quiz_submissions)))
             results['percent'] = f"{100*results['num_correct']/len(self.__quiz_submissions)}%"
@@ -196,6 +187,7 @@ class Quiz(Game):
                               prev_question=None,
                               next_question=None,
                               **results)
+        
         # initialize output value    
         answer = None # this will be the answer sent to the client
         self.__current_submission.answer = Answer(kwargs['answer']) # This is the answer on the current screen.  May be None
