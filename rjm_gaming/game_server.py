@@ -16,9 +16,11 @@ from sys import stderr
 from game_network import HTTPRequest
 from game_network import HTTPHeader
 from game_network import HTTPSession
+from game_network import parse_query
 from game_authentication import Authenticator
 from game_authentication import ServerClient
 from config import Config
+from game_registry import Registry
 from game_engine import GameEngine
 from game_utilities import DataAccess
 from game_utilities import FileDataAccess
@@ -32,6 +34,7 @@ class ServerClientService(Thread):
     def __init__(self, config: Config) -> None:
         super().__init__() # have to call this in __init__ of Thread subclass
         self.__config = config
+        self.__registry = Registry(config)
         self.__client_id = None
         self.__client = None
         self.__requests = []
@@ -114,6 +117,10 @@ class ServerClientService(Thread):
         self.__requests.append(request)
     
     @property
+    def registry(self) -> Registry:
+        return self.__registry
+    
+    @property
     def client(self) -> ServerClient:
         return self.__client
     
@@ -176,7 +183,7 @@ class GameClientService(ServerClientService):
         # send main menu
         if action == '/menu':
             
-            # self.__kill_favicon(request)
+            
             self.__send_main_menu(request)
             return
         
@@ -207,9 +214,6 @@ class GameClientService(ServerClientService):
         # send a game page: should be called when message sent back from game screen
         if self.__game['game'] is not None and action == '/game/' + self.__game['game'].name.lower():
             kwargs = self.__game['view'].get_play(request.request_type)
-            print()
-            print(kwargs)
-            print()
             result = self.__game['game'].play_next(**kwargs)
             kwargs = dict(session=HTTPSession(self.client_id),
                             game_result=result)
@@ -223,6 +227,21 @@ class GameClientService(ServerClientService):
             header.content_length = len(reponse)
             
             request.connection.render(reponse, header=header)
+            return
+        
+        # send register page
+        if action == '/register':
+            response = self.registry.process(request)
+            
+            header = HTTPHeader()
+            header.content_type = 'text/html; charset=utf-8'
+            header.cache_control = 'no-cache'
+            header.connection = 'close'
+            header.content_length = len(response)
+            
+            
+            
+            request.connection.render(response, header=header)
             return
         
         # send admin menu
@@ -336,17 +355,7 @@ class GameClientService(ServerClientService):
             Returns the value as a string, if present.
             Otherwise, returns None.
         '''
-        query = request_type.split(' ')[1]
-        sections = query.split('&')
-        
-        input_value = None
-        for section in sections:
-            if name in section:
-                idx = section.index(name)
-                input_value = section[idx + len(name):]
-                break
-        
-        return input_value
+        return parse_query(request_type, name)
     
     def __send_games_menu(self, request: HTTPRequest) -> None:
         
@@ -409,7 +418,7 @@ class GameServer:######This Should be a thread, so that it can be shutdown
         self.__engine = GameEngine(data_access)
         self.__server.bind((address, port))
         self.__server.listen(5)
-        print(f'Server started on {port}')
+        print(f'RJM GameServer started on {port}')
         
     def start(self) -> None:
         with self.__server as server:
@@ -422,7 +431,7 @@ class GameServer:######This Should be a thread, so that it can be shutdown
             except (ConnectionAbortedError,
                     KeyboardInterrupt,
                     SystemExit) as e:
-                stderr.write("Server closing...\n" + str(e) + str(time.ctime()) + '\n')
+                stderr.write("RJM GameServer closing...\n" + str(e) + str(time.ctime()) + '\n')
                 self.shutdown()
                 raise
             

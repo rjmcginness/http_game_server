@@ -8,6 +8,8 @@ Created on Thu May  5 21:48:31 2022
 class Config:
     LOGIN_FORM = '../static/login.html'
     LOGIN_FAIL = '../static/login_failed.html'
+    USER_DB = '../init/mennir'
     GAME_MENU = '../static/menu.html'
     MENU_FILE = '../static/mainmenu.html'
+    REGISTRY_PAGE = '../static/register.html'
     EXIT = '../static/exit.html'

@@ -43,11 +43,8 @@ class QuizView(GameView):
         results_html = self.render_file('../static/game/quiz/' +\
                                              'quiz_results.html')
         
-        
         game_result = kwargs['game_result']
-        print(game_result)
         results = game_result.result_data
-        print('RESULTS', results)
         
         results_html = results_html.replace('%QUIZ%', game_result.game_name)
         results_html = results_html.replace('%NAME%', game_result.players[0].name)
@@ -243,7 +240,7 @@ if __name__ == '__main__':
     
     results = {}
     session = HTTPSession(str(time.time()))
-    # results['game_over'] = None
+    
     results['questions'] = submissions
     results['percent'] = str(100/3) + '%'
     results['num_correct'] = 1

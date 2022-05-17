@@ -38,4 +38,9 @@ complete redesign
             implemented: user registration and real user validation.  These will be in the
             admin "link." Also in admin, I will try to implement forms to create a quiz.
             It would also be nice to complete the css request.  This was solved in
-            servertest.py, butnot sure there is time to implement and test properly.  
+            servertest.py, butnot sure there is time to implement and test properly.
+
+5/16/2022  Added Registry to enter new users.  Working end-to-end.  Authenticator does not
+            against the registered users yet.  Instead of implementing the Admin
+            funtionality of writing new quizes, this will be a separate terminal tool, in
+            view of time.
