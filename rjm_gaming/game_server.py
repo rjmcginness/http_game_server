@@ -430,31 +430,6 @@ class GameClientService(ServerClientService):
         header.content_length = len(admin_menu)
         
         request.connection.render(admin_menu, header=header)
-        
-    #     game_names = self.__engine.get_games()
-        
-    #     games_html = ''
-    #     for name in game_names:
-    #         games_html += self.__build_game_html(name, '/admin')
-            
-    #     games_menu = games_menu.replace('%GAMES%', games_html)
-        
-    #     # prep file after adding game html
-    #     games_menu = self.__prep_output_file(games_menu, request)
-        
-    #     header.content_length = len(games_menu)
-        
-    #     request.connection.render(games_menu, header=header)
-        
-    # def __administer_game(self, request: HTTPRequest, game_name: str) -> None:
-        
-    #     admin_class = ClassLoader.load_class(game_name + 'Admin',
-    #                                          game_name.lower() + '_admin')
-        
-    #     admin = admin_class(self.config)
-        
-    #     request.connection.render(*admin.administer(request))
-    
     
     def __send_exit(self, request: HTTPRequest) -> None:
         header = HTTPHeader()
@@ -469,7 +444,7 @@ class GameClientService(ServerClientService):
         
     
 
-class GameServer:######This Should be a thread, so that it can be shutdown
+class GameServer:######Should be a thread, so that it can be shutdown???
     def __init__(self, address: str = 'localhost',
                        port: int = 6500,
                        data_access: DataAccess = \
@@ -483,6 +458,7 @@ class GameServer:######This Should be a thread, so that it can be shutdown
         print(f'RJM GameServer started on {port}')
         
     def start(self) -> None:
+        
         with self.__server as server:
             try:
                 while True:
