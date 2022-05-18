@@ -24,6 +24,7 @@ from game_registry import Registry
 from game_engine import GameEngine
 from game_utilities import DataAccess
 from game_utilities import FileDataAccess
+from game_utilities import ClassLoader
 from game_base import Player
 
 
@@ -182,8 +183,6 @@ class GameClientService(ServerClientService):
         
         # send main menu
         if action == '/menu':
-            
-            
             self.__send_main_menu(request)
             return
         
@@ -244,18 +243,47 @@ class GameClientService(ServerClientService):
             request.connection.render(response, header=header)
             return
         
-        # send admin menu
+        # send admin menu or render game admin
         if action == '/admin':
+            print(" ADMIN UNDER CONSTRUCTION")
             self.__send_admin_menu(request)
+            # game_name = parse_query(request.request_type, 'game=')
+            # if game_name is not None and not game_name.isspace() and len(game_name) != 0:
+            #     self.__administer_game(request, game_name)
+            # else:
+            #     self.__send_admin_menu(request)
+            # return
+            return
+        
+        # send a game page: should be called when message sent back from game screen
+        if self.__game['game'] is not None and action == '/game/' + self.__game['game'].name.lower():
+            kwargs = self.__game['view'].get_play(request.request_type)
+            result = self.__game['game'].play_next(**kwargs)
+            kwargs = dict(session=HTTPSession(self.client_id),
+                            game_result=result)
+            
+            reponse = self.__game['view'].render(**kwargs) # use GameView to render output
+            
+            header = HTTPHeader()
+            header.content_type = 'text/html; charset=utf-8'
+            header.cache_control = 'no-cache'
+            header.connection = 'close'
+            header.content_length = len(reponse)
+            
+            request.connection.render(reponse, header=header)
+            return
+        
+        # send confirmation of quiz change
+        if action == '/quiz_changed':
+            self.__send_main_menu(request)
             return
         
         # exit and close this service
         if action == '/exit': # kill the client
-            
-            ######MAY HAVE TO FIX THIS, CHANGE FROM FORM TO REDIRECT
             self.__send_exit(request)
             self._ServerClientService__client = None
-            self.__client_id = None
+            self.__ServerClientService__client_id = None
+            self._ServerClientService__exit = True
             return
         
         header = HTTPHeader()
@@ -371,7 +399,7 @@ class GameClientService(ServerClientService):
         
         games_html = ''
         for name in game_names:
-            games_html += self.__build_game_html(name)
+            games_html += self.__build_game_html(name, '/game')
             
         games_menu = games_menu.replace('%GAMES%', games_html)
         
@@ -383,17 +411,50 @@ class GameClientService(ServerClientService):
         request.connection.render(games_menu, header=header)
         
     
-    def __build_game_html(self, game_name: str) -> str:
-        game_link = '<form action="/game" method="get">'
+    def __build_game_html(self, game_name: str, action: str) -> str:
+        game_link = f'<form action="{action}" method="get">'
         game_link += f'<input type="submit" value="{game_name}" name="game" />'
         game_link += '</form>'
         
         return game_link
 
     def __send_admin_menu(self, request: HTTPRequest) -> None:
-        print("NOT IMPLEMENTED")
-        ######SEND BACK MAIN MENU FOR NOW
-        self.__send_main_menu(request)
+        
+        header = HTTPHeader()
+        header.content_type = 'text/html; charset=utf-8'
+        header.connection = 'close'
+        
+        admin_menu = self.__read_output_file(self.config.ADMIN_MENU)
+        
+        admin_menu = request.session.form_insert(admin_menu)
+        
+        header.content_length = len(admin_menu)
+        
+        request.connection.render(admin_menu, header=header)
+        
+    #     game_names = self.__engine.get_games()
+        
+    #     games_html = ''
+    #     for name in game_names:
+    #         games_html += self.__build_game_html(name, '/admin')
+            
+    #     games_menu = games_menu.replace('%GAMES%', games_html)
+        
+    #     # prep file after adding game html
+    #     games_menu = self.__prep_output_file(games_menu, request)
+        
+    #     header.content_length = len(games_menu)
+        
+    #     request.connection.render(games_menu, header=header)
+        
+    # def __administer_game(self, request: HTTPRequest, game_name: str) -> None:
+        
+    #     admin_class = ClassLoader.load_class(game_name + 'Admin',
+    #                                          game_name.lower() + '_admin')
+        
+    #     admin = admin_class(self.config)
+        
+    #     request.connection.render(*admin.administer(request))
     
     
     def __send_exit(self, request: HTTPRequest) -> None:
