@@ -5,6 +5,24 @@ Created on Wed May 18 08:38:21 2022
 @author: Robert J McGinness
 """
 
+from sys import path
+from pathlib import Path
+import os
+
+
+# set PYTHONPATH
+base_path = os.fspath(Path(os.path.abspath('.')))
+rjm_path = base_path + '/rjm_gaming'
+games_path = base_path + '/games'
+
+
+if rjm_path not in path:
+    path.append(rjm_path)
+    
+if games_path not in path:
+    path.append(games_path)
+    
+
 from rjm_gaming.game_server import GameServer
 
 
@@ -25,10 +43,8 @@ if __name__ == '__main__':
         print('Starting server...')
         server = GameServer(address, int(port))
         server.start()
-    except Exception as e:
+    except (Exception, KeyboardInterrupt) as e:
         print(e)
-        server.shutdown()
-        exit()
     finally:
         server.shutdown()
 
