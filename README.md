@@ -1,9 +1,24 @@
 # rjm_games_V2
 HTTP Game Server
 utilizes game_engine from version 1
-complete redesign
+(complete redesign)
 
 
+Paths required for PYTHONPATH (base path is path of directory where main folder is saved:
+            base_path/rjm_games_V2/rjm_gaming
+            base_path/rjm_games_V2/games
+            base_path/rjm_games_V2/games/quiz
+
+Start server: python rjm_games.py (CHOOSE A PORT)
+To Play: In browser type the url: localhost:PORT, where PORT is the port number for the server
+
+Start QuizMaker: python quiz_maker.py
+
+To stop server:  In console or terminal, press ctrl+c or ctrl+z, THEN in any browser use
+instructions above for "To Play." (This is related to how KeyboardInterrup behaves on windows)
+
+
+**DEVELOPMENT NOTES**
 5/13/2022  Getting there.  Able to request and render files all the way to start page.
             Currently, debugging quiz.py and quiz_view.py.
             Still need to fix the issue with having to stop loading page and re-requesting
@@ -56,3 +71,8 @@ complete redesign
             file.  If possible prior to submission, the threading of the server should be
             assessed for more robust server closure.  At this stage, the project could be
             submitted.
+          
+5/18/2022  Complete for submission.  Changed where server is started.  Use rjm_games.py in the
+            base folder.  The issue with stopping the server is a know implementation issue
+            wt Pythn and windows sockets.  This will not be addressed here.  See the included
+            pdf for the project submission.

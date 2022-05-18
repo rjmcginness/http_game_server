@@ -10,6 +10,7 @@ from typing import Tuple
 
 from rjm_gaming.game_network import HTTPRequest
 from rjm_gaming.game_network import parse_query
+from rjm_gaming.game_network import remove_http_pluses
 from config import Config
 
 
@@ -66,7 +67,7 @@ class Registry:
         name = parse_query(request, 'name=')
         password = parse_query(request, 'password=')
         
-        return name, password
+        return remove_http_pluses(name), remove_http_pluses(password)
     
     def __build_login_page(self, request: HTTPRequest) -> str:
         return request.session.form_insert(self.__login_html + '\r\n')

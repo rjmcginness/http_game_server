@@ -25,7 +25,7 @@ class QuizView(GameView):
             Renders HTML start form
         """
         
-        start_html = self.render_file('../static/game/quiz/quiz_start.html')
+        start_html = self.render_file('./static/game/quiz/quiz_start.html')
         
         start_html = start_html.replace('%QUIZ%', 'Quiz')
         start_html = start_html.replace('%NAME%', kwargs['player'].name)
@@ -40,7 +40,7 @@ class QuizView(GameView):
             and kwargs['questions'] to contain all of the 
             QuizSubmission objects at submission
         """
-        results_html = self.render_file('../static/game/quiz/' +\
+        results_html = self.render_file('./static/game/quiz/' +\
                                              'quiz_results.html')
         
         game_result = kwargs['game_result']
@@ -190,78 +190,80 @@ class QuizView(GameView):
         return value
 
 if __name__ == '__main__':
-    import time
-    from quiz import Question
-    from quiz import Answer
-    from rjm_gaming.game_base import GameResult
-    from rjm_gaming.game_base import Player
-    from rjm_gaming.game_network import HTTPSession
+    from sys import exit
+    exit()
+    # import time
+    # from quiz import Question
+    # from quiz import Answer
+    # from rjm_gaming.game_base import GameResult
+    # from rjm_gaming.game_base import Player
+    # from rjm_gaming.game_network import HTTPSession
     
-    qv = QuizView(str(time.time()), '../static/game/quiz.html')
+    # qv = QuizView(str(time.time()), '../static/game/quiz.html')
     
-    q = Question("Where do sharks live?",
-                'ocean',
-                1,
-                ['desert', 'lake', 'ocean', 'mountain'],
-                'multiple choice')
-    q2 = Question("Where do sharks live?",
-                'ocean',
-                2,
-                ['desert', 'lake', 'ocean', 'mountain'],
-                'multiple choice')
-    q3 = Question("Where do sharks live?",
-                'ocean',
-                3,
-                ['desert', 'lake', 'ocean', 'mountain'],
-                'multiple choice')
+    # q = Question("Where do sharks live?",
+    #             'ocean',
+    #             1,
+    #             ['desert', 'lake', 'ocean', 'mountain'],
+    #             'multiple choice')
+    # q2 = Question("Where do sharks live?",
+    #             'ocean',
+    #             2,
+    #             ['desert', 'lake', 'ocean', 'mountain'],
+    #             'multiple choice')
+    # q3 = Question("Where do sharks live?",
+    #             'ocean',
+    #             3,
+    #             ['desert', 'lake', 'ocean', 'mountain'],
+    #             'multiple choice')
     
-    results = {}
-    
-    
-    result = GameResult([Player("Bronwyn", str(time.time()))],
-                      game_name='Quiz',
-                      result_id=1, 
-                      question_num=1,
-                      question=q,
-                      answer=None,
-                      prev_question=None,
-                      next_question=q,
-                      **results)
-    
-    print(qv.render_result(result))
-    
-    submission1 = QuizSubmission(q, Answer('ocean'))
-    submission2 = QuizSubmission(q2, Answer('mountain'))
-    submission3 = QuizSubmission(q3, None)
-    
-    submissions = [submission1,
-                   submission2,
-                   submission3]
-    
-    results = {}
-    session = HTTPSession(str(time.time()))
-    
-    results['questions'] = submissions
-    results['percent'] = str(100/3) + '%'
-    results['num_correct'] = 1
-    
-    print('\n\n', results['num_correct'], '\n\n')
+    # results = {}
     
     
-    result = GameResult([Player("Bronwyn", str(time.time()))],
-                      game_name='Quiz',
-                      game_over=True,
-                      result_id=1, 
-                      question_num=1,
-                      question=None,
-                      answer=None,
-                      prev_question=None,
-                      next_question=q,
-                      **results)
+    # result = GameResult([Player("Bronwyn", str(time.time()))],
+    #                   game_name='Quiz',
+    #                   result_id=1, 
+    #                   question_num=1,
+    #                   question=q,
+    #                   answer=None,
+    #                   prev_question=None,
+    #                   next_question=q,
+    #                   **results)
     
-    output = dict(session=session, game_result=result)
+    # print(qv.render_result(result))
     
-    print(qv.render(**output))
+    # submission1 = QuizSubmission(q, Answer('ocean'))
+    # submission2 = QuizSubmission(q2, Answer('mountain'))
+    # submission3 = QuizSubmission(q3, None)
     
-    print()
-    print(qv.get_play('GET /quiz?answer=ocean&input=Answer HTTP/1.1'))
+    # submissions = [submission1,
+    #                submission2,
+    #                submission3]
+    
+    # results = {}
+    # session = HTTPSession(str(time.time()))
+    
+    # results['questions'] = submissions
+    # results['percent'] = str(100/3) + '%'
+    # results['num_correct'] = 1
+    
+    # print('\n\n', results['num_correct'], '\n\n')
+    
+    
+    # result = GameResult([Player("Bronwyn", str(time.time()))],
+    #                   game_name='Quiz',
+    #                   game_over=True,
+    #                   result_id=1, 
+    #                   question_num=1,
+    #                   question=None,
+    #                   answer=None,
+    #                   prev_question=None,
+    #                   next_question=q,
+    #                   **results)
+    
+    # output = dict(session=session, game_result=result)
+    
+    # print(qv.render(**output))
+    
+    # print()
+    # print(qv.get_play('GET /quiz?answer=ocean&input=Answer HTTP/1.1'))

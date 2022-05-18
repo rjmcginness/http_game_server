@@ -8,6 +8,7 @@ Created on Thu May  5 21:50:29 2022
 from typing import Dict
 
 from config import Config
+from game_network import remove_http_pluses
 
 
 class ServerClient:
@@ -74,9 +75,9 @@ class Authenticator:
             password = ''
             for query_pair in query_pairs:
                 if 'username=' in query_pair:
-                    username = query_pair.split('username=')[1]
+                    username = remove_http_pluses(query_pair.split('username=')[1])
                 if 'password=' in query_pair:
-                    password = query_pair.split('password=')[1]
+                    password = remove_http_pluses(query_pair.split('password=')[1])
                     
             
             ##############################################
