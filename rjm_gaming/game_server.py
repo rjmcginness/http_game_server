@@ -24,7 +24,6 @@ from game_registry import Registry
 from game_engine import GameEngine
 from game_utilities import DataAccess
 from game_utilities import FileDataAccess
-from game_utilities import ClassLoader
 from game_base import Player
 
 
@@ -474,7 +473,7 @@ class GameServer:######This Should be a thread, so that it can be shutdown
     def __init__(self, address: str = 'localhost',
                        port: int = 6500,
                        data_access: DataAccess = \
-                       FileDataAccess('../init/game_init.i', raw=False)) -> None:
+                       FileDataAccess('./init/game_init.i', raw=False)) -> None:
         
         self.__server = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # create server
         self.__clients = {}

@@ -7,13 +7,10 @@ Created on Thu Apr 21 13:54:49 2022
 
 from typing import List
 from typing import Dict
-import time
-
 import json
 
 from game_base import GameInvalidError
 from game_utilities import DataAccess
-from game_utilities import ClassLoader
 from game_base import ClassInitMeta
 
 
@@ -78,12 +75,14 @@ class GameEngine:
         return list(game['name'] for game in self.__game_init_list)
     
 if __name__ == '__main__':
-    from game_utilities import FileDataAccess
+    from sys import exit
+    exit()
+    # from game_utilities import FileDataAccess
     
-    fa = FileDataAccess('../init/game_init.i', raw=False)
-    fa.initialize()
+    # fa = FileDataAccess('../init/game_init.i', raw=False)
+    # fa.initialize()
     
-    engine = GameEngine(fa)
-    engine.load_game('Quiz')
+    # engine = GameEngine(fa)
+    # engine.load_game('Quiz')
 
     
