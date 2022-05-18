@@ -18,7 +18,7 @@ To stop server:  In console or terminal, press ctrl+c or ctrl+z, THEN in any bro
 instructions above for "To Play." (This is related to how KeyboardInterrup behaves on windows)
 
 
-
+**DEVELOPMENT NOTES**
 5/13/2022  Getting there.  Able to request and render files all the way to start page.
             Currently, debugging quiz.py and quiz_view.py.
             Still need to fix the issue with having to stop loading page and re-requesting
