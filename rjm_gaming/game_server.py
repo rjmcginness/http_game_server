@@ -476,6 +476,7 @@ class GameServer:######Should be a thread, so that it can be shutdown???
     def shutdown(self):
         for client in self.__clients.values():
             client.stop()
+        self.__server.settimeout(0.5)
         self.__server.close()
         
     @property
