@@ -5,6 +5,34 @@ Created on Tue May 17 10:07:26 2022
 @author: Robert J McGinness
 """
 
+from sys import path
+import os
+from pathlib import Path
+
+
+#set up paths
+full_path = Path(os.path.abspath('.'))
+quiz_path = os.fspath(full_path.parent)
+games_path = full_path.parent.parent
+rjm_gaming_path = os.fspath(games_path.parent)
+rjm_path = os.fspath(games_path.parent / 'rjm_gaming')
+games_path = os.fspath(games_path)
+
+if rjm_gaming_path not in path:
+    path.append(rjm_gaming_path)
+
+if quiz_path not in path:
+    path.append(quiz_path)
+
+if games_path not in path:
+    path.append(games_path)
+
+if rjm_path not in path:
+    path.append(rjm_path)
+
+
+
+
 import json
 import time
 from typing import List
@@ -75,19 +103,19 @@ class QuizMaker:
             self.__question_buffer.append(question)
             
     def add_question(self, question: str,
-                           answer: str,
-                           choices: List[str],
-                           question_type: str='multiple_choice') -> None:
+                            answer: str,
+                            choices: List[str],
+                            question_type: str='multiple_choice') -> None:
         
         new_question = self.__build_question(question, answer, choices)
         
         self.__question_buffer.append(new_question)
     
     def replace_question(self, question_number: int,
-                               question: str,
-                               answer: str,
-                               choices: List[str],
-                               question_type: str='multiple_choice') -> None:
+                                question: str,
+                                answer: str,
+                                choices: List[str],
+                                question_type: str='multiple_choice') -> None:
         try:
             del self.__question_buffer[question_number]
             new_question = self.__build_question(question, answer, choices)
@@ -102,9 +130,9 @@ class QuizMaker:
             return
         
     def __build_question(self, question: str,
-                               answer: str,
-                               choices: List[str],
-                               question_type: str='multiple_choice') -> Question:
+                                answer: str,
+                                choices: List[str],
+                                question_type: str='multiple_choice') -> Question:
         
         return Question(question, answer, str(time.time()), choices,
                                                             'multiple_choice')
