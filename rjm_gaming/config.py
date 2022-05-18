@@ -13,3 +13,4 @@ class Config:
     MENU_FILE = '../static/mainmenu.html'
     REGISTRY_PAGE = '../static/register.html'
     EXIT = '../static/exit.html'
+    ADMIN_MENU = '../static/admin_menu.html'

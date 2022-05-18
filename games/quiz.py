@@ -104,6 +104,8 @@ class QuizSubmission:
     @answer.setter
     def answer(self, ans: Any) -> None:
         '''Needs to add in + characters to handle answers with spaces'''
+        if ans is not None and (ans.value.isspace() or len(ans.value) == 0):
+            ans = None
         self.__answer = ans
         self.__isanswered = True if ans is not None else False
         self.__iscorrect = (self.__isanswered and \

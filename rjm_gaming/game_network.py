@@ -333,7 +333,7 @@ class HTTPRequest:
             found_at_idx = self.__request.index('identifier=')
             start_idx = found_at_idx+len('identifier=')
             end_idx = self.__request[start_idx:].index(' ')
-            identifier = self.__request[start_idx:start_idx + end_idx]
+            identifier = self.__request[start_idx:start_idx + end_idx].split('\n')[0] # change here 5/17/2022
 
             self.__session = HTTPSession(identifier)
         except (ValueError, IndexError):
